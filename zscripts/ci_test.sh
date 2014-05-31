@@ -1,0 +1,2 @@
+echo '=> Starting Tests...'
+
