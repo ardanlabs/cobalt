@@ -61,3 +61,9 @@ func (c *Context) ServeJsonWithStatus(status int, obj interface{}) {
 	c.Response.WriteHeader(status)
 	json.NewEncoder(c.Response).Encode(obj)
 }
+
+// ServeJsonWithStatus is a helper method to return json from a struct type with a status code.
+func (c *Context) ServeJsonString(j string) {
+	c.Response.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	c.Response.Write([]byte(j))
+}
