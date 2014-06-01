@@ -47,7 +47,7 @@ func init() {
 }
 
 // NewDispatcher creates a new dispatcher.
-func NewDispatcher() *Dispatcher {
+func New() *Dispatcher {
 	r := pat.New()
 	return &Dispatcher{r, []FilterHandler{}, []Handler{}}
 }
