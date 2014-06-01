@@ -53,12 +53,12 @@ func NewDispatcher() *Dispatcher {
 }
 
 // AddPreFilter adds a prefilter hanlder to a dispatcher instance.
-func (d *Dispatcher) AddPreFilter(h FilterHandler) {
+func (d *Dispatcher) AddPrefilter(h FilterHandler) {
 	d.Prefilters = append(d.Prefilters, h)
 }
 
 // AddPostFilter adds a post processing handler to a diaptcher instance.
-func (d *Dispatcher) AddPostFilter(h Handler) {
+func (d *Dispatcher) AddPostfilter(h Handler) {
 	d.Postfilters = append(d.Postfilters, h)
 }
 
@@ -92,6 +92,17 @@ func (d *Dispatcher) Head(route string, h Handler) {
 	d.addroute(HeadMethod, route, h)
 }
 
+// Run runs the dispatcher which starts an http server to listen and serve.
+func (d *Dispatcher) Run(addr string) {
+	logger.Printf("starting, listening on %s", addr)
+
+	http.Handle("/", d.Router)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		logger.Fatal(err)
+	}
+}
+
 // addRoute adds a route with an asscoiated method and handler. It Builds a function which is then passed to the router.
 func (d *Dispatcher) addroute(method, route string, h Handler) {
 
@@ -121,15 +132,4 @@ func (d *Dispatcher) addroute(method, route string, h Handler) {
 	})
 
 	d.Router.Add(method, route, f)
-}
-
-// Run runs the dispatcher which starts an http server to listen and serve.
-func (d *Dispatcher) Run(addr string) {
-	logger.Printf("starting, listening on %s", addr)
-
-	http.Handle("/", d.Router)
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		logger.Fatal(err)
-	}
 }
