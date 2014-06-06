@@ -115,13 +115,21 @@ func (d *Dispatcher) addroute(method, route string, h Handler) {
 
 		ctx := NewContext(req, w)
 
-		for _, filter := range d.Prefilters {
-			exit := filter(ctx)
+		for i := 0; i < len(d.Prefilters); i++ {
+			exit := d.Prefilters[i](ctx)
 			if exit {
 				return
 			}
 		}
 
+		/*
+			for _, filter := range d.Prefilters {
+				exit := filter(ctx)
+				if exit {
+					return
+				}
+			}
+		*/
 		// call route handler
 		h(ctx)
 
