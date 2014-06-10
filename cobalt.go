@@ -94,11 +94,16 @@ func (d *Dispatcher) Head(route string, h Handler) {
 	d.addroute(HeadMethod, route, h)
 }
 
+func (d *Dispatcher) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// future use for middleware.
+	d.router.ServeHTTP(w, req)
+}
+
 // Run runs the dispatcher which starts an http server to listen and serve.
 func (d *Dispatcher) Run(addr string) {
 	logger.Printf("starting, listening on %s", addr)
 
-	http.Handle("/", d.router)
+	http.Handle("/", d)
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		logger.Fatal(err)
