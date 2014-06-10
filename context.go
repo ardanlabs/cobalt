@@ -28,7 +28,7 @@ func NewContext(req *http.Request, resp http.ResponseWriter, p *httprouter.Param
 }
 
 // GetValue returns the value for the associated key from the url parameters.
-func (c *Context) GetRouteValue(key string) string {
+func (c *Context) RouteValue(key string) string {
 	return c.params.ByName(key)
 }
 
