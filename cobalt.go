@@ -16,7 +16,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/OutCast-IO/pat"
+	"github.com/OutCast-IO/httprouter"
 )
 
 const (
@@ -32,9 +32,11 @@ var logger *log.Logger
 
 type (
 	Dispatcher struct {
-		Router      *pat.PatternServeMux
-		Prefilters  []FilterHandler
-		Postfilters []Handler
+		router          *httprouter.Router
+		Prefilters      []FilterHandler
+		Postfilters     []Handler
+		NotFoundHandler Handler
+		ServerError     Handler
 	}
 
 	Handler       func(c *Context)
@@ -48,8 +50,8 @@ func init() {
 
 // NewDispatcher creates a new dispatcher.
 func New() *Dispatcher {
-	r := pat.New()
-	return &Dispatcher{r, []FilterHandler{}, []Handler{}}
+	r := httprouter.New()
+	return &Dispatcher{r, []FilterHandler{}, []Handler{}, nil, nil}
 }
 
 // AddPreFilter adds a prefilter hanlder to a dispatcher instance.
@@ -96,7 +98,7 @@ func (d *Dispatcher) Head(route string, h Handler) {
 func (d *Dispatcher) Run(addr string) {
 	logger.Printf("starting, listening on %s", addr)
 
-	http.Handle("/", d.Router)
+	http.Handle("/", d.router)
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		logger.Fatal(err)
@@ -106,14 +108,14 @@ func (d *Dispatcher) Run(addr string) {
 // addRoute adds a route with an asscoiated method and handler. It Builds a function which is then passed to the router.
 func (d *Dispatcher) addroute(method, route string, h Handler) {
 
-	f := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 		if r := recover(); r != nil {
 			buf := make([]byte, 10000)
 			runtime.Stack(buf, false)
 			logger.Printf("%s", string(buf))
 		}
 
-		ctx := NewContext(req, w)
+		ctx := NewContext(req, w, &p)
 
 		for i := 0; i < len(d.Prefilters); i++ {
 			exit := d.Prefilters[i](ctx)
@@ -136,8 +138,7 @@ func (d *Dispatcher) addroute(method, route string, h Handler) {
 		for _, filter := range d.Postfilters {
 			filter(ctx)
 		}
+	}
 
-	})
-
-	d.Router.Add(method, route, f)
+	d.router.Handle(method, route, f)
 }

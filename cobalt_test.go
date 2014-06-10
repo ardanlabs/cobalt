@@ -37,7 +37,7 @@ func Test_PreFilters(t *testing.T) {
 		ctx.Response.Write([]byte(data))
 	})
 
-	d.Router.ServeHTTP(w, r)
+	d.router.ServeHTTP(w, r)
 
 	if w.Code != 200 {
 		t.Errorf("expected status code to be 200 instead got %d", w.Code)
@@ -69,7 +69,7 @@ func Test_PreFiltersExit(t *testing.T) {
 		ctx.Response.Write([]byte(data))
 	})
 
-	d.Router.ServeHTTP(w, r)
+	d.router.ServeHTTP(w, r)
 
 	if w.Code != code {
 		t.Errorf("expected status code to be 200 instead got %d", w.Code)
@@ -139,7 +139,7 @@ func AssertRoute(path, verb string, d *Dispatcher, t *testing.T) {
 	r, _ := http.NewRequest(strings.ToUpper(verb), path, nil)
 	w := httptest.NewRecorder()
 
-	d.Router.ServeHTTP(w, r)
+	d.router.ServeHTTP(w, r)
 	if w.Body.String() != verb+path {
 		t.Errorf("expected body to be %s instead got %s", w.Body.String())
 	}

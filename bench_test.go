@@ -66,6 +66,6 @@ func BenchmarkContextRequest(b *testing.B) {
 		r, _ := http.NewRequest("GET", path, nil)
 		w := httptest.NewRecorder()
 		b.StartTimer()
-		d.Router.ServeHTTP(w, r)
+		d.router.ServeHTTP(w, r)
 	}
 }
