@@ -103,8 +103,8 @@ func (d *Dispatcher) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (d *Dispatcher) Run(addr string) {
 	logger.Printf("starting, listening on %s", addr)
 
-	http.Handle("/", d)
-	err := http.ListenAndServe(addr, nil)
+	//http.Handle("/", d.router)
+	err := http.ListenAndServe(addr, d)
 	if err != nil {
 		logger.Fatal(err)
 	}
