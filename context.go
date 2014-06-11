@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/OutCast-IO/httprouter"
 )
 
 const (
@@ -18,18 +16,18 @@ type (
 		Response http.ResponseWriter
 		Request  *http.Request
 		Data     map[interface{}]interface{}
-		params   *httprouter.Params
+		params   map[string]string
 	}
 )
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
-func NewContext(req *http.Request, resp http.ResponseWriter, p *httprouter.Params) *Context {
+func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string) *Context {
 	return &Context{Request: req, Response: resp, Data: map[interface{}]interface{}{}, params: p}
 }
 
 // GetValue returns the value for the associated key from the url parameters.
 func (c *Context) RouteValue(key string) string {
-	return c.params.ByName(key)
+	return c.params[key]
 }
 
 // GetData returns the value for the specified key from the context data. Usually used by prefilters to pass data to the http handler

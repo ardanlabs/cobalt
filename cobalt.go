@@ -11,12 +11,13 @@
 package cobalt
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
 
-	"github.com/OutCast-IO/httprouter"
+	"github.com/OutCast-IO/httptreemux"
 )
 
 const (
@@ -31,8 +32,8 @@ const (
 var logger *log.Logger
 
 type (
-	Dispatcher struct {
-		router          *httprouter.Router
+	Cobalt struct {
+		Router          *httptreemux.TreeMux
 		Prefilters      []FilterHandler
 		Postfilters     []Handler
 		NotFoundHandler Handler
@@ -49,88 +50,89 @@ func init() {
 }
 
 // NewDispatcher creates a new dispatcher.
-func New() *Dispatcher {
-	r := httprouter.New()
-	return &Dispatcher{r, []FilterHandler{}, []Handler{}, nil, nil}
+func New() *Cobalt {
+	r := httptreemux.New()
+	return &Cobalt{r, []FilterHandler{}, []Handler{}, nil, nil}
 }
 
 // AddPreFilter adds a prefilter hanlder to a dispatcher instance.
-func (d *Dispatcher) AddPrefilter(h FilterHandler) {
-	d.Prefilters = append(d.Prefilters, h)
+func (c *Cobalt) AddPrefilter(h FilterHandler) {
+	c.Prefilters = append(c.Prefilters, h)
 }
 
 // AddPostFilter adds a post processing handler to a diaptcher instance.
-func (d *Dispatcher) AddPostfilter(h Handler) {
-	d.Postfilters = append(d.Postfilters, h)
+func (c *Cobalt) AddPostfilter(h Handler) {
+	c.Postfilters = append(c.Postfilters, h)
 }
 
 // Get adds a route with an associated handler that matches a GET verb in a request.
-func (d *Dispatcher) Get(route string, h Handler) {
-	d.addroute(GetMethod, route, h)
+func (c *Cobalt) Get(route string, h Handler) {
+	c.addroute(GetMethod, route, h)
 }
 
 // Post adds a route with an associated handler that matches a POST verb in a request.
-func (d *Dispatcher) Post(route string, h Handler) {
-	d.addroute(PostMethod, route, h)
+func (c *Cobalt) Post(route string, h Handler) {
+	c.addroute(PostMethod, route, h)
 }
 
 // Put adds a route with an associated handler that matches a PUT verb in a request.
-func (d *Dispatcher) Put(route string, h Handler) {
-	d.addroute(PutMethod, route, h)
+func (c *Cobalt) Put(route string, h Handler) {
+	c.addroute(PutMethod, route, h)
 }
 
 // Delete adds a route with an associated handler that matches a DELETE verb in a request.
-func (d *Dispatcher) Delete(route string, h Handler) {
-	d.addroute(DeleteMethod, route, h)
+func (c *Cobalt) Delete(route string, h Handler) {
+	c.addroute(DeleteMethod, route, h)
 }
 
 // Options adds a route with an associated handler that matches a OPTIONS verb in a request.
-func (d *Dispatcher) Options(route string, h Handler) {
-	d.addroute(OptionsMethod, route, h)
+func (c *Cobalt) Options(route string, h Handler) {
+	c.addroute(OptionsMethod, route, h)
 }
 
 // Head adds a route with an associated handler that matches a HEAD verb in a request.
-func (d *Dispatcher) Head(route string, h Handler) {
-	d.addroute(HeadMethod, route, h)
+func (c *Cobalt) Head(route string, h Handler) {
+	c.addroute(HeadMethod, route, h)
 }
 
-func (d *Dispatcher) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// future use for middleware.
-	d.router.ServeHTTP(w, req)
+	c.Router.ServeHTTP(w, req)
 }
 
 // Run runs the dispatcher which starts an http server to listen and serve.
-func (d *Dispatcher) Run(addr string) {
+func (c *Cobalt) Run(addr string) {
 	logger.Printf("starting, listening on %s", addr)
 
-	//http.Handle("/", d.router)
-	err := http.ListenAndServe(addr, d)
+	//http.Handle("/", c.Router)
+	err := http.ListenAndServe(addr, c)
 	if err != nil {
-		logger.Fatal(err)
+		//logger.Fatal(err)
+		fmt.Printf(err.Error())
 	}
 }
 
 // addRoute adds a route with an asscoiated method and handler. It Builds a function which is then passed to the router.
-func (d *Dispatcher) addroute(method, route string, h Handler) {
+func (c *Cobalt) addroute(method, route string, h Handler) {
 
-	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
 		if r := recover(); r != nil {
 			buf := make([]byte, 10000)
 			runtime.Stack(buf, false)
 			logger.Printf("%s", string(buf))
 		}
 
-		ctx := NewContext(req, w, &p)
+		ctx := NewContext(req, w, p)
 
-		for i := 0; i < len(d.Prefilters); i++ {
-			exit := d.Prefilters[i](ctx)
+		for i := 0; i < len(c.Prefilters); i++ {
+			exit := c.Prefilters[i](ctx)
 			if exit {
 				return
 			}
 		}
 
 		/*
-			for _, filter := range d.Prefilters {
+			for _, filter := range c.Prefilters {
 				exit := filter(ctx)
 				if exit {
 					return
@@ -140,10 +142,10 @@ func (d *Dispatcher) addroute(method, route string, h Handler) {
 		// call route handler
 		h(ctx)
 
-		for _, filter := range d.Postfilters {
+		for _, filter := range c.Postfilters {
 			filter(ctx)
 		}
 	}
 
-	d.router.Handle(method, route, f)
+	c.Router.Handle(method, route, f)
 }

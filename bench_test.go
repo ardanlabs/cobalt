@@ -1,7 +1,6 @@
 package cobalt
 
 import (
-	"net/http"
 	"net/http/httptest"
 	"testing"
 )
@@ -49,23 +48,24 @@ var data string = `[
 
 func BenchmarkContextRequest(b *testing.B) {
 	path := "/Hello/:name/World"
-	d := New()
+	c := New()
 
-	d.AddPrefilter(func(c *Context) bool {
+	c.AddPrefilter(func(c *Context) bool {
 		c.SetData("DATA", data)
 		return false
 	})
 
-	d.Get(path, func(ctx *Context) {
+	c.Get(path, func(ctx *Context) {
 		v := ctx.GetData("DATA").(string)
 		ctx.Response.Write([]byte(v))
 	})
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
-		r, _ := http.NewRequest("GET", path, nil)
+		r := newRequest("GET", path, nil)
 		w := httptest.NewRecorder()
 		b.StartTimer()
-		d.router.ServeHTTP(w, r)
+		c.ServeHTTP(w, r)
 	}
+	b.ReportAllocs()
 }
