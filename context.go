@@ -16,18 +16,18 @@ type (
 		Response http.ResponseWriter
 		Request  *http.Request
 		Data     map[interface{}]interface{}
-		params   map[string]string
+		Params   map[string]string
 	}
 )
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
 func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string) *Context {
-	return &Context{Request: req, Response: resp, Data: map[interface{}]interface{}{}, params: p}
+	return &Context{Request: req, Response: resp, Data: map[interface{}]interface{}{}, Params: p}
 }
 
 // GetValue returns the value for the associated key from the url parameters.
 func (c *Context) RouteValue(key string) string {
-	return c.params[key]
+	return c.Params[key]
 }
 
 // GetData returns the value for the specified key from the context data. Usually used by prefilters to pass data to the http handler
