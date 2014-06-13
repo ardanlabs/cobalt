@@ -29,25 +29,18 @@ const (
 	HeadMethod    = "HEAD"
 )
 
-var logger *log.Logger
-
 type (
 	Cobalt struct {
-		Router          *httptreemux.TreeMux
-		Prefilters      []FilterHandler
-		Postfilters     []Handler
-		NotFoundHandler Handler
-		ServerError     Handler
+		router          *httptreemux.TreeMux
+		prefilters      []FilterHandler
+		postfilters     []Handler
+		notFoundHandler Handler
+		serverError     Handler
 	}
 
 	Handler       func(c *Context)
 	FilterHandler func(c *Context) bool
 )
-
-// init initializes the logger that used in the package.
-func init() {
-	logger = log.New(os.Stdout, "[cobalt] ", 0)
-}
 
 // NewDispatcher creates a new dispatcher.
 func New() *Cobalt {
@@ -57,12 +50,12 @@ func New() *Cobalt {
 
 // AddPreFilter adds a prefilter hanlder to a dispatcher instance.
 func (c *Cobalt) AddPrefilter(h FilterHandler) {
-	c.Prefilters = append(c.Prefilters, h)
+	c.prefilters = append(c.prefilters, h)
 }
 
 // AddPostFilter adds a post processing handler to a diaptcher instance.
 func (c *Cobalt) AddPostfilter(h Handler) {
-	c.Postfilters = append(c.Postfilters, h)
+	c.postfilters = append(c.postfilters, h)
 }
 
 // Get adds a route with an associated handler that matches a GET verb in a request.
@@ -95,20 +88,23 @@ func (c *Cobalt) Head(route string, h Handler) {
 	c.addroute(HeadMethod, route, h)
 }
 
+// ServeHTTP implements the HandlerFunc that process the http request.
 func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// future use for middleware.
-	c.Router.ServeHTTP(w, req)
+	c.router.ServeHTTP(w, req)
 }
 
 // Run runs the dispatcher which starts an http server to listen and serve.
 func (c *Cobalt) Run(addr string) {
-	logger.Printf("starting, listening on %s", addr)
+	log.SetOutput(os.Stdout)
+	log.SetFlags(0)
+	log.SetPrefix("[cobalt] ")
+	log.Printf("starting, listening on %s", addr)
 
 	//http.Handle("/", c.Router)
 	err := http.ListenAndServe(addr, c)
 	if err != nil {
-		//logger.Fatal(err)
-		fmt.Printf(err.Error())
+		log.Fatalf(err.Error())
 	}
 }
 
@@ -119,13 +115,13 @@ func (c *Cobalt) addroute(method, route string, h Handler) {
 		if r := recover(); r != nil {
 			buf := make([]byte, 10000)
 			runtime.Stack(buf, false)
-			logger.Printf("%s", string(buf))
+			fmt.Printf("%s", string(buf))
 		}
 
 		ctx := NewContext(req, w, p)
 
-		for i := 0; i < len(c.Prefilters); i++ {
-			exit := c.Prefilters[i](ctx)
+		for i := 0; i < len(c.prefilters); i++ {
+			exit := c.prefilters[i](ctx)
 			if exit {
 				return
 			}
@@ -142,10 +138,10 @@ func (c *Cobalt) addroute(method, route string, h Handler) {
 		// call route handler
 		h(ctx)
 
-		for _, filter := range c.Postfilters {
+		for _, filter := range c.postfilters {
 			filter(ctx)
 		}
 	}
 
-	c.Router.Handle(method, route, f)
+	c.router.Handle(method, route, f)
 }
