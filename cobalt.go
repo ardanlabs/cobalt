@@ -128,13 +128,14 @@ func (c *Cobalt) addroute(method, route string, h Handler) {
 		}
 
 		/*
-			for _, filter := range c.Prefilters {
+			for _, filter := range c.prefilters {
 				exit := filter(ctx)
 				if exit {
 					return
 				}
 			}
 		*/
+
 		// call route handler
 		h(ctx)
 

@@ -15,30 +15,34 @@ type (
 	Context struct {
 		Response http.ResponseWriter
 		Request  *http.Request
-		Data     map[interface{}]interface{}
-		Params   map[string]string
+		data     map[interface{}]interface{}
+		params   map[string]string
 	}
 )
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
 func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string) *Context {
-	return &Context{Request: req, Response: resp, Data: map[interface{}]interface{}{}, Params: p}
+	return &Context{Request: req, Response: resp, data: map[interface{}]interface{}{}, params: p}
 }
 
 // GetValue returns the value for the associated key from the url parameters.
 func (c *Context) RouteValue(key string) string {
-	return c.Params[key]
+	return c.params[key]
+}
+
+func (c *Context) AllRouteValues() map[string]string {
+	return c.params
 }
 
 // GetData returns the value for the specified key from the context data. Usually used by prefilters to pass data to the http handler
 // and post filters.
 func (c *Context) GetData(key interface{}) interface{} {
-	return c.Data[key]
+	return c.data[key]
 }
 
 // SetData sets the data for the specified key in the context instance.
 func (c *Context) SetData(key interface{}, value interface{}) {
-	c.Data[key] = value
+	c.data[key] = value
 }
 
 // ServeJson is a helper method to return json from a struct type.
