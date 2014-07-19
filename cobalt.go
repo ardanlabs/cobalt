@@ -4,6 +4,10 @@
 // Pre-filters are called after the router identifies the proper route and before the user code (handler) is called.
 // Pre-filters allow you to write to the response and end the request chain by returning a value of true from the filter handler.
 //
+// Route-Filters allow you to write a filter for a specific route. Pre-filters and route-filters return a boolean indicating whether to
+// continueing processing the request or to exit. So when a filter returns false the request will end. If a filter returns true it will continue
+// processing the request.
+//
 // Post filters allow you to specify a handler that gets called after the user code (handler) is run.
 //
 // Context contains the http request and response writer. It also allows parameters to be added to the context as well. Context is passed to
@@ -21,15 +25,28 @@ import (
 )
 
 const (
-	GetMethod     = "GET"
-	PostMethod    = "POST"
-	PutMethod     = "PUT"
-	DeleteMethod  = "DELETE"
+	// GetMethod is a http GET
+	GetMethod = "GET"
+
+	// PostMethod is a http POST
+	PostMethod = "POST"
+
+	// PutMethod is a http PUT
+	PutMethod = "PUT"
+
+	// DeleteMethod is a http DELETE
+	DeleteMethod = "DELETE"
+
+	// OptionsMethod is a http OPTIONS
 	OptionsMethod = "OPTIONS"
-	HeadMethod    = "HEAD"
+
+	// HeadMethod is a http HEAD
+	HeadMethod = "HEAD"
 )
 
 type (
+
+	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
 		router          *httptreemux.TreeMux
 		prefilters      []FilterHandler
@@ -38,22 +55,25 @@ type (
 		serverError     Handler
 	}
 
-	Handler       func(c *Context)
+	// Handler represents a request handler that is called by cobalt
+	Handler func(c *Context)
+
+	// FilterHandler is the handler that all pre and route filters implement
 	FilterHandler func(c *Context) bool
 )
 
-// NewDispatcher creates a new dispatcher.
+// New creates a new instance of cobalt.
 func New() *Cobalt {
 	r := httptreemux.New()
 	return &Cobalt{r, []FilterHandler{}, []Handler{}, nil, nil}
 }
 
-// AddPreFilter adds a prefilter hanlder to a dispatcher instance.
+// AddPrefilter adds a prefilter hanlder to a dispatcher instance.
 func (c *Cobalt) AddPrefilter(h FilterHandler) {
 	c.prefilters = append(c.prefilters, h)
 }
 
-// AddPostFilter adds a post processing handler to a diaptcher instance.
+// AddPostfilter adds a post processing handler to a diaptcher instance.
 func (c *Cobalt) AddPostfilter(h Handler) {
 	c.postfilters = append(c.postfilters, h)
 }
@@ -122,8 +142,8 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 
 		// global filters.
 		for i := 0; i < len(c.prefilters); i++ {
-			exit := c.prefilters[i](ctx)
-			if exit {
+			keepGoing := c.prefilters[i](ctx)
+			if !keepGoing {
 				return
 			}
 		}
@@ -131,8 +151,8 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		// route specific filters.
 		if filters != nil {
 			for i := 0; i < len(filters); i++ {
-				exit := filters[i](ctx)
-				if exit {
+				keepGoing := filters[i](ctx)
+				if !keepGoing {
 					return
 				}
 			}

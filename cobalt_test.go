@@ -25,6 +25,7 @@ func newRequest(method, path string, body io.Reader) *http.Request {
 	return r
 }
 
+// Test_PreFilters tests pre-filters
 func Test_PreFilters(t *testing.T) {
 	//setup request
 	r := newRequest("GET", "/", nil)
@@ -36,7 +37,7 @@ func Test_PreFilters(t *testing.T) {
 
 	c.AddPrefilter(func(ctx *Context) bool {
 		ctx.SetData("PRE", data)
-		return false
+		return true
 	})
 
 	c.Get("/", func(ctx *Context) {
@@ -53,10 +54,11 @@ func Test_PreFilters(t *testing.T) {
 		t.Errorf("expected status code to be 200 instead got %d", w.Code)
 	}
 	if w.Body.String() != data {
-		t.Errorf("expected body to be %s instead got %s", w.Body.String())
+		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
 	}
 }
 
+// Test_PreFiltersExit tests pre-filters stopping the request.
 func Test_PreFiltersExit(t *testing.T) {
 	r := newRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
@@ -68,7 +70,7 @@ func Test_PreFiltersExit(t *testing.T) {
 	c.AddPrefilter(func(ctx *Context) bool {
 		ctx.Response.WriteHeader(code)
 		ctx.Response.Write([]byte(data))
-		return true
+		return false
 	})
 
 	c.Get("/", func(ctx *Context) {
@@ -85,10 +87,11 @@ func Test_PreFiltersExit(t *testing.T) {
 		t.Errorf("expected status code to be 200 instead got %d", w.Code)
 	}
 	if w.Body.String() != data {
-		t.Errorf("expected body to be %s instead got %s", w.Body.String())
+		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
 	}
 }
 
+// Test_Routes tests the routing of requests.
 func Test_Routes(t *testing.T) {
 	c := New()
 
@@ -145,13 +148,86 @@ func Test_Routes(t *testing.T) {
 	}
 }
 
+// Test_RouteFiltersSettingData tests route filters setting data and passing it to handlers.
+func Test_RouteFiltersSettingData(t *testing.T) {
+
+	//setup request
+	r := newRequest("GET", "/RouteFilter", nil)
+	w := httptest.NewRecorder()
+
+	// test route filter setting
+	data := "ROUTEFILTER"
+
+	c := New()
+
+	c.Get("/RouteFilter",
+
+		func(ctx *Context) {
+			v := ctx.GetData("PRE")
+			if v != data {
+				t.Errorf("expected %s got %s", data, v)
+			}
+			ctx.Response.Write([]byte(data))
+		},
+		[]FilterHandler{
+			func(c *Context) bool {
+				c.SetData("PRE", data)
+				return true
+			}})
+
+	c.ServeHTTP(w, r)
+
+	if w.Code != 200 {
+		t.Errorf("expected status code to be 200 instead got %d", w.Code)
+	}
+	if w.Body.String() != data {
+		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
+	}
+}
+
+// Test_RouteFilterExit tests route filters stopping the request.
+func Test_RouteFilterExit(t *testing.T) {
+	data := "ROUTEFILTEREXIT"
+	//setup request
+	r := newRequest("GET", "/RouteFilter", nil)
+	w := httptest.NewRecorder()
+
+	c := New()
+
+	c.Get("/RouteFilter",
+
+		func(ctx *Context) {
+			v := ctx.GetData("PRE")
+			if v != data {
+				t.Errorf("expected %s got %s", data, v)
+			}
+			ctx.Response.Write([]byte("FOO"))
+		},
+		[]FilterHandler{
+			func(ctx *Context) bool {
+				ctx.Response.WriteHeader(http.StatusUnauthorized)
+				ctx.Response.Write([]byte(data))
+				return false
+			}})
+
+	c.ServeHTTP(w, r)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected status code to be %d instead got %d", http.StatusUnauthorized, w.Code)
+	}
+	if w.Body.String() != data {
+		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
+	}
+}
+
+// AsserRoute is a helper method to tests routes
 func AssertRoute(path, verb string, c *Cobalt, t *testing.T) {
 	r := newRequest(strings.ToUpper(verb), path, nil)
 	w := httptest.NewRecorder()
 
 	c.ServeHTTP(w, r)
 	if w.Body.String() != verb+path {
-		t.Errorf("expected body to be %s instead got %s", w.Body.String())
+		t.Errorf("expected body to be %s instead got %s", verb+path, w.Body.String())
 	}
 }
 
