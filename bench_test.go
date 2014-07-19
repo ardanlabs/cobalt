@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var data string = `[
+var data = `[
 	{
 		"input_index": 0,
 		"candidate_index": 0,
@@ -58,7 +58,7 @@ func BenchmarkContextRequest(b *testing.B) {
 	c.Get(path, func(ctx *Context) {
 		v := ctx.GetData("DATA").(string)
 		ctx.Response.Write([]byte(v))
-	})
+	}, nil)
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()

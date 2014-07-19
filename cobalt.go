@@ -1,4 +1,4 @@
-// cobalt package represents a small web toolkit to allow the building of web applications.
+// Package cobalt represents a small web toolkit to allow the building of web applications.
 // It is primarily intended to be used for JSON based API. It has routing, pre-filters and post filters.
 //
 // Pre-filters are called after the router identifies the proper route and before the user code (handler) is called.
@@ -59,33 +59,33 @@ func (c *Cobalt) AddPostfilter(h Handler) {
 }
 
 // Get adds a route with an associated handler that matches a GET verb in a request.
-func (c *Cobalt) Get(route string, h Handler) {
-	c.addroute(GetMethod, route, h)
+func (c *Cobalt) Get(route string, h Handler, f []FilterHandler) {
+	c.addroute(GetMethod, route, h, f)
 }
 
 // Post adds a route with an associated handler that matches a POST verb in a request.
-func (c *Cobalt) Post(route string, h Handler) {
-	c.addroute(PostMethod, route, h)
+func (c *Cobalt) Post(route string, h Handler, f []FilterHandler) {
+	c.addroute(PostMethod, route, h, f)
 }
 
 // Put adds a route with an associated handler that matches a PUT verb in a request.
-func (c *Cobalt) Put(route string, h Handler) {
-	c.addroute(PutMethod, route, h)
+func (c *Cobalt) Put(route string, h Handler, f []FilterHandler) {
+	c.addroute(PutMethod, route, h, f)
 }
 
 // Delete adds a route with an associated handler that matches a DELETE verb in a request.
-func (c *Cobalt) Delete(route string, h Handler) {
-	c.addroute(DeleteMethod, route, h)
+func (c *Cobalt) Delete(route string, h Handler, f []FilterHandler) {
+	c.addroute(DeleteMethod, route, h, f)
 }
 
 // Options adds a route with an associated handler that matches a OPTIONS verb in a request.
-func (c *Cobalt) Options(route string, h Handler) {
-	c.addroute(OptionsMethod, route, h)
+func (c *Cobalt) Options(route string, h Handler, f []FilterHandler) {
+	c.addroute(OptionsMethod, route, h, f)
 }
 
 // Head adds a route with an associated handler that matches a HEAD verb in a request.
-func (c *Cobalt) Head(route string, h Handler) {
-	c.addroute(HeadMethod, route, h)
+func (c *Cobalt) Head(route string, h Handler, f []FilterHandler) {
+	c.addroute(HeadMethod, route, h, f)
 }
 
 // ServeHTTP implements the HandlerFunc that process the http request.
@@ -108,8 +108,8 @@ func (c *Cobalt) Run(addr string) {
 	}
 }
 
-// addRoute adds a route with an asscoiated method and handler. It Builds a function which is then passed to the router.
-func (c *Cobalt) addroute(method, route string, h Handler) {
+// addRoute adds a route with an asscoiated method, handler and route filters.. It Builds a function which is then passed to the router.
+func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
 		if r := recover(); r != nil {
@@ -120,6 +120,7 @@ func (c *Cobalt) addroute(method, route string, h Handler) {
 
 		ctx := NewContext(req, w, p)
 
+		// global filters.
 		for i := 0; i < len(c.prefilters); i++ {
 			exit := c.prefilters[i](ctx)
 			if exit {
@@ -127,14 +128,15 @@ func (c *Cobalt) addroute(method, route string, h Handler) {
 			}
 		}
 
-		/*
-			for _, filter := range c.prefilters {
-				exit := filter(ctx)
+		// route specific filters.
+		if filters != nil {
+			for i := 0; i < len(filters); i++ {
+				exit := filters[i](ctx)
 				if exit {
 					return
 				}
 			}
-		*/
+		}
 
 		// call route handler
 		h(ctx)

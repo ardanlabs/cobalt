@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-var r map[int][]string = map[int][]string{
+var r = map[int][]string{
 	1: []string{"/", "Get"},
 	2: []string{"/foo", "Get"},
 	3: []string{"/", "Post"},
@@ -45,7 +45,7 @@ func Test_PreFilters(t *testing.T) {
 			t.Errorf("expected %s got %s", data, v)
 		}
 		ctx.Response.Write([]byte(data))
-	})
+	}, nil)
 
 	c.ServeHTTP(w, r)
 
@@ -77,7 +77,7 @@ func Test_PreFiltersExit(t *testing.T) {
 			t.Errorf("expected %s got %s", data, v)
 		}
 		ctx.Response.Write([]byte(data))
-	})
+	}, nil)
 
 	c.ServeHTTP(w, r)
 
@@ -95,50 +95,50 @@ func Test_Routes(t *testing.T) {
 	// GET
 	c.Get("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Get/"))
-	})
+	}, nil)
 	c.Get("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Get/foo"))
-	})
+	}, nil)
 
 	// POST
 	c.Post("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Post/"))
-	})
+	}, nil)
 	c.Post("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Post/foo"))
-	})
+	}, nil)
 
 	// PUT
 	c.Put("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Put/"))
-	})
+	}, nil)
 	c.Put("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Put/foo"))
-	})
+	}, nil)
 
 	// Delete
 	c.Delete("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Delete/"))
-	})
+	}, nil)
 	c.Delete("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Delete/foo"))
-	})
+	}, nil)
 
 	// OPTIONS
 	c.Options("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Options/"))
-	})
+	}, nil)
 	c.Options("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Options/foo"))
-	})
+	}, nil)
 
 	// HEAD
 	c.Head("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Head/"))
-	})
+	}, nil)
 	c.Head("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Head/foo"))
-	})
+	}, nil)
 
 	for _, v := range r {
 		AssertRoute(v[0], v[1], c, t)
