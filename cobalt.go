@@ -132,11 +132,17 @@ func (c *Cobalt) Run(addr string) {
 func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
-		if r := recover(); r != nil {
-			buf := make([]byte, 10000)
-			runtime.Stack(buf, false)
-			fmt.Printf("%s", string(buf))
-		}
+		defer func() {
+			if r := recover(); r != nil {
+				buf := make([]byte, 10000)
+				runtime.Stack(buf, false)
+				fmt.Printf("%s", string(buf))
+				if c.serverError != nil {
+					c.serverError(nil)
+					return
+				}
+			}
+		}()
 
 		ctx := NewContext(req, w, p)
 
