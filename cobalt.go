@@ -21,7 +21,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/servicecall/httptreemux"
+	"github.com/OutCast-IO/httptreemux"
 )
 
 const (
