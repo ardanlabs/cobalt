@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"encoding/json"
+	"fmt"
 )
 
 var r = map[int][]string{
@@ -240,5 +242,35 @@ func Test_NotFoundHandler(t *testing.T) {
 }
 
 func Test_ServerErrorHandler(t *testing.T) {
+	//setup request
+	r := newRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	m:= struct { Message string}{"Internal Error"}
 	
+	se := func(c *Context) {
+		c.ServeJSONWithStatus(http.StatusInternalServerError, m)
+	}
+
+	c := New()
+	c.AddServerErrHanlder(se)
+
+	c.Get("/",
+		func(ctx *Context) {
+			panic("Panic Test")
+		},
+		nil)
+
+	c.ServeHTTP(w, r)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("expected status code to be 500 instead got %d", w.Code)
+	}
+
+	var msg struct { Message string}
+	json.Unmarshal([]byte(w.Body.String()), &msg)
+
+	if msg.Message != m.Message  {
+		t.Errorf("expected body to be %s instead got %s", msg.Message, m.Message)
+	}
 }

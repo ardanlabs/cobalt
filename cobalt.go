@@ -78,6 +78,11 @@ func (c *Cobalt) AddPostfilter(h Handler) {
 	c.postfilters = append(c.postfilters, h)
 }
 
+// AddServerErrHanlder add handler for server err.
+func (c *Cobalt) AddServerErrHanlder(h Handler) {
+	c.serverError = h
+}
+
 // Get adds a route with an associated handler that matches a GET verb in a request.
 func (c *Cobalt) Get(route string, h Handler, f []FilterHandler) {
 	c.addroute(GetMethod, route, h, f)
@@ -132,19 +137,22 @@ func (c *Cobalt) Run(addr string) {
 func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
-		defer func() {
+		ctx := NewContext(req, w, p)
+
+		// Handle panics
+		defer func(context *Context) {
 			if r := recover(); r != nil {
+				fmt.Printf("Panic, Recovering")
 				buf := make([]byte, 10000)
 				runtime.Stack(buf, false)
 				fmt.Printf("%s", string(buf))
 				if c.serverError != nil {
-					c.serverError(nil)
+					fmt.Printf("Panic, Recovering")
+					c.serverError(context)
 					return
 				}
 			}
-		}()
-
-		ctx := NewContext(req, w, p)
+		}(ctx)
 
 		// global filters.
 		for i := 0; i < len(c.prefilters); i++ {

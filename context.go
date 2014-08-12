@@ -16,14 +16,14 @@ type (
 	Context struct {
 		Response http.ResponseWriter
 		Request  *http.Request
-		data     map[interface{}]interface{}
+		data     map[string]interface{}
 		params   map[string]string
 	}
 )
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
 func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string) *Context {
-	return &Context{Request: req, Response: resp, data: map[interface{}]interface{}{}, params: p}
+	return &Context{Request: req, Response: resp, data: map[string]interface{}{}, params: p}
 }
 
 // RouteValue returns the value for the associated key from the url parameters.
@@ -38,12 +38,12 @@ func (c *Context) AllRouteValues() map[string]string {
 
 // GetData returns the value for the specified key from the context data. Usually used by prefilters to pass data to the http handler
 // and post filters.
-func (c *Context) GetData(key interface{}) interface{} {
+func (c *Context) GetData(key string) interface{} {
 	return c.data[key]
 }
 
 // SetData sets the data for the specified key in the context instance.
-func (c *Context) SetData(key interface{}, value interface{}) {
+func (c *Context) SetData(key string, value interface{}) {
 	c.data[key] = value
 }
 
