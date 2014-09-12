@@ -48,11 +48,10 @@ type (
 
 	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
-		router          *httptreemux.TreeMux
-		prefilters      []FilterHandler
-		postfilters     []Handler
-		notFoundHandler Handler
-		serverError     Handler
+		router      *httptreemux.TreeMux
+		prefilters  []FilterHandler
+		postfilters []Handler
+		serverError Handler
 	}
 
 	// Handler represents a request handler that is called by cobalt
@@ -65,7 +64,7 @@ type (
 // New creates a new instance of cobalt.
 func New() *Cobalt {
 	r := httptreemux.New()
-	return &Cobalt{r, []FilterHandler{}, []Handler{}, nil, nil}
+	return &Cobalt{r, []FilterHandler{}, []Handler{}, nil}
 }
 
 // AddPrefilter adds a prefilter hanlder to a dispatcher instance.
@@ -81,6 +80,16 @@ func (c *Cobalt) AddPostfilter(h Handler) {
 // AddServerErrHanlder add handler for server err.
 func (c *Cobalt) AddServerErrHanlder(h Handler) {
 	c.serverError = h
+}
+
+// AddNotFoundHandler adds a not found handler
+func (c *Cobalt) AddNotFoundHandler(h Handler) {
+	t := func(w http.ResponseWriter, req *http.Request) {
+		ctx := NewContext(req, w, nil)
+		h(ctx)
+	}
+
+	c.router.NotFoundHandler = t
 }
 
 // Get adds a route with an associated handler that matches a GET verb in a request.

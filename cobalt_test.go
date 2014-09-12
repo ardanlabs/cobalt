@@ -1,14 +1,13 @@
 package cobalt
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-	"encoding/json"
-	"fmt"
 )
 
 var r = map[int][]string{
@@ -238,7 +237,37 @@ func Test_PostFilters(t *testing.T) {
 }
 
 func Test_NotFoundHandler(t *testing.T) {
+	//setup request
+	r := newRequest("GET", "/FOO", nil)
+	w := httptest.NewRecorder()
 
+	m := struct{ Message string }{"Not Found"}
+
+	nf := func(c *Context) {
+		c.ServeJSONWithStatus(http.StatusNotFound, m)
+	}
+
+	c := New()
+	c.AddNotFoundHandler(nf)
+
+	c.Get("/",
+		func(ctx *Context) {
+			panic("Panic Test")
+		},
+		nil)
+
+	c.ServeHTTP(w, r)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status code to be 404 instead got %d", w.Code)
+	}
+
+	var msg struct{ Message string }
+	json.Unmarshal([]byte(w.Body.String()), &msg)
+
+	if msg.Message != m.Message {
+		t.Errorf("expected body to be %s instead got %s", msg.Message, m.Message)
+	}
 }
 
 func Test_ServerErrorHandler(t *testing.T) {
@@ -246,8 +275,8 @@ func Test_ServerErrorHandler(t *testing.T) {
 	r := newRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 
-	m:= struct { Message string}{"Internal Error"}
-	
+	m := struct{ Message string }{"Internal Error"}
+
 	se := func(c *Context) {
 		c.ServeJSONWithStatus(http.StatusInternalServerError, m)
 	}
@@ -267,10 +296,10 @@ func Test_ServerErrorHandler(t *testing.T) {
 		t.Errorf("expected status code to be 500 instead got %d", w.Code)
 	}
 
-	var msg struct { Message string}
+	var msg struct{ Message string }
 	json.Unmarshal([]byte(w.Body.String()), &msg)
 
-	if msg.Message != m.Message  {
+	if msg.Message != m.Message {
 		t.Errorf("expected body to be %s instead got %s", msg.Message, m.Message)
 	}
 }
