@@ -60,6 +60,7 @@ func BenchmarkContextRequest(b *testing.B) {
 		ctx.Response.Write([]byte(v))
 	}, nil)
 
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
 		r := newRequest("GET", path, nil)

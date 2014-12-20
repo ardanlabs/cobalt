@@ -23,7 +23,12 @@ type (
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
 func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string) *Context {
-	return &Context{Request: req, Response: resp, data: map[string]interface{}{}, params: p}
+	return &Context{
+		Request:  req,
+		Response: resp,
+		data:     make(map[string]interface{}),
+		params:   p,
+	}
 }
 
 // RouteValue returns the value for the associated key from the url parameters.
@@ -48,25 +53,25 @@ func (c *Context) SetData(key string, value interface{}) {
 }
 
 // ServeJSON is a helper method to return json from a struct type.
-func (c *Context) ServeJSON(obj interface{}) {
-	c.ServeJSONWithCache(obj, 0)
+func (c *Context) ServeJSON(val interface{}) {
+	c.ServeJSONWithCache(val, 0)
 }
 
 // ServeJSONWithCache is a helper method to return json from a struct type. It adds a cache control header
 // to the response if seconds > 0
-func (c *Context) ServeJSONWithCache(obj interface{}, seconds int64) {
+func (c *Context) ServeJSONWithCache(val interface{}, seconds int64) {
 	if seconds > 0 {
 		c.Response.Header().Set(CacheControlHeader, fmt.Sprintf("private, must-revalidate, max-age=%d", seconds))
 	}
 	c.Response.Header().Set("Content-Type", "application/json;charset=UTF-8")
-	json.NewEncoder(c.Response).Encode(obj)
+	json.NewEncoder(c.Response).Encode(val)
 }
 
 // ServeJSONWithStatus is a helper method to return json from a struct type with a status code.
-func (c *Context) ServeJSONWithStatus(status int, obj interface{}) {
+func (c *Context) ServeJSONWithStatus(status int, val interface{}) {
 	c.Response.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	c.Response.WriteHeader(status)
-	json.NewEncoder(c.Response).Encode(obj)
+	json.NewEncoder(c.Response).Encode(val)
 }
 
 // ServeJSONString is a helper method to return json from a struct type with a status code.

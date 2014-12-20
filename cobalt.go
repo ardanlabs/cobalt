@@ -63,8 +63,7 @@ type (
 
 // New creates a new instance of cobalt.
 func New() *Cobalt {
-	r := httptreemux.New()
-	return &Cobalt{r, []FilterHandler{}, []Handler{}, nil}
+	return &Cobalt{router: httptreemux.New()}
 }
 
 // AddPrefilter adds a prefilter hanlder to a dispatcher instance.
@@ -149,7 +148,7 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		ctx := NewContext(req, w, p)
 
 		// Handle panics
-		defer func(context *Context) {
+		defer func() {
 			if r := recover(); r != nil {
 				fmt.Printf("Panic, Recovering")
 				buf := make([]byte, 10000)
@@ -157,21 +156,22 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 				fmt.Printf("%s", string(buf))
 				if c.serverError != nil {
 					fmt.Printf("Panic, Recovering")
-					c.serverError(context)
+					c.serverError(ctx)
 					return
 				}
 			}
-		}(ctx)
+		}()
 
-		// global filters.
+		// global filters. benchmarked
+		// todo: range
 		for i := 0; i < len(c.prefilters); i++ {
-			keepGoing := c.prefilters[i](ctx)
-			if !keepGoing {
+			if keepGoing := c.prefilters[i](ctx); !keepGoing {
 				return
 			}
 		}
 
 		// route specific filters.
+		// todo: range
 		if filters != nil {
 			for i := 0; i < len(filters); i++ {
 				keepGoing := filters[i](ctx)
