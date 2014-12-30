@@ -9,6 +9,8 @@ import (
 const (
 	// CacheControlHeader represents the http cache control header
 	CacheControlHeader = "Cache-control"
+
+	jsonContent = "application/json;charset=UTF-8"
 )
 
 type (
@@ -52,6 +54,11 @@ func (c *Context) SetData(key string, value interface{}) {
 	c.data[key] = value
 }
 
+// Error returns an http Error with the specified Error string and code
+func (c *Context) Error(body interface{}, status int) {
+	c.ServeJSONWithStatus(status, body)
+}
+
 // ServeJSON is a helper method to return json from a struct type.
 func (c *Context) ServeJSON(val interface{}) {
 	c.ServeJSONWithCache(val, 0)
@@ -63,19 +70,28 @@ func (c *Context) ServeJSONWithCache(val interface{}, seconds int64) {
 	if seconds > 0 {
 		c.Response.Header().Set(CacheControlHeader, fmt.Sprintf("private, must-revalidate, max-age=%d", seconds))
 	}
-	c.Response.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	c.Response.Header().Set("Content-Type", jsonContent)
 	json.NewEncoder(c.Response).Encode(val)
 }
 
 // ServeJSONWithStatus is a helper method to return json from a struct type with a status code.
 func (c *Context) ServeJSONWithStatus(status int, val interface{}) {
-	c.Response.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	c.Response.Header().Set("Content-Type", jsonContent)
 	c.Response.WriteHeader(status)
 	json.NewEncoder(c.Response).Encode(val)
 }
 
 // ServeJSONString is a helper method to return json from a struct type with a status code.
 func (c *Context) ServeJSONString(j string) {
-	c.Response.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	c.Response.Header().Set("Content-Type", jsonContent)
 	c.Response.Write([]byte(j))
+}
+
+// ServeResponse serves a response with the status and content type sent
+func (c *Context) ServeResponse(resp []byte, status int, contentType string) {
+	if contentType != "" {
+		c.Response.Header().Set("Content-Type", contentType)
+	}
+	c.Response.WriteHeader(status)
+	c.Response.Write(resp)
 }
