@@ -15,6 +15,7 @@
 package cobalt
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -42,9 +43,23 @@ const (
 
 	// HeadMethod is a http HEAD
 	HeadMethod = "HEAD"
+
+	// unknownEncoding unknown type of encoding
+	unknownEncoding EncodingType = iota
+
+	// JSONEncoding json based encoding
+	JSONEncoding
+
+	// MSGPackEncoding msgpack based encoding, http://msgpack.org
+	MSGPackEncoding
+
+	// maxEncoding and above is invalid encoding.
+	maxEncoding
 )
 
 type (
+	// Encoding Type denotes the encoding type
+	EncodingType int
 
 	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
@@ -52,6 +67,7 @@ type (
 		prefilters  []FilterHandler
 		postfilters []Handler
 		serverError Handler
+		encodeT     EncodingType
 	}
 
 	// Handler represents a request handler that is called by cobalt
@@ -61,9 +77,17 @@ type (
 	FilterHandler func(c *Context) bool
 )
 
+// ErrInvalidEncodingType is an error for an invalid encoding option
+var ErrInvalidEncodingType = errors.New("Invalid Encoding Type")
+
 // New creates a new instance of cobalt.
-func New() *Cobalt {
-	return &Cobalt{router: httptreemux.New()}
+func New(en EncodingType) (*Cobalt, error) {
+
+	if en <= unknownEncoding || en >= maxEncoding {
+		return nil, ErrInvalidEncodingType
+	}
+
+	return &Cobalt{router: httptreemux.New(), encodeT: en}, nil
 }
 
 // AddPrefilter adds a prefilter hanlder to a dispatcher instance.
@@ -84,7 +108,7 @@ func (c *Cobalt) AddServerErrHanlder(h Handler) {
 // AddNotFoundHandler adds a not found handler
 func (c *Cobalt) AddNotFoundHandler(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
-		ctx := NewContext(req, w, nil)
+		ctx := NewContext(req, w, nil, c.encodeT)
 		h(ctx)
 	}
 
@@ -145,7 +169,7 @@ func (c *Cobalt) Run(addr string) {
 func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
-		ctx := NewContext(req, w, p)
+		ctx := NewContext(req, w, p, c.encodeT)
 
 		// Handle panics
 		defer func() {

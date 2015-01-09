@@ -10,10 +10,12 @@ const (
 	// CacheControlHeader represents the http cache control header
 	CacheControlHeader = "Cache-control"
 
-	jsonContent = "application/json;charset=UTF-8"
+	jsonContent    = "application/json;charset=UTF-8"
+	msgPackContent = "application/x-msgpack"
 )
 
 type (
+
 	// Context is the struct type that holds context data for a request.
 	Context struct {
 		Response http.ResponseWriter
