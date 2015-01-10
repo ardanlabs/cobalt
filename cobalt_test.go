@@ -34,7 +34,7 @@ func Test_PreFilters(t *testing.T) {
 
 	data := "PREFILTER"
 	// pre filters
-	c := New()
+	c := New(JSONEncoding)
 
 	c.AddPrefilter(func(ctx *Context) bool {
 		ctx.SetData("PRE", data)
@@ -66,7 +66,7 @@ func Test_PreFiltersExit(t *testing.T) {
 
 	data := "PREFILTER_EXIT"
 	code := http.StatusBadRequest
-	c := New()
+	c := New(JSONEncoding)
 
 	c.AddPrefilter(func(ctx *Context) bool {
 		ctx.Response.WriteHeader(code)
@@ -94,7 +94,7 @@ func Test_PreFiltersExit(t *testing.T) {
 
 // Test_Routes tests the routing of requests.
 func Test_Routes(t *testing.T) {
-	c := New()
+	c := New(JSONEncoding)
 
 	// GET
 	c.Get("/", func(ctx *Context) {
@@ -159,7 +159,7 @@ func Test_RouteFiltersSettingData(t *testing.T) {
 	// test route filter setting
 	data := "ROUTEFILTER"
 
-	c := New()
+	c := New(JSONEncoding)
 
 	c.Get("/RouteFilter",
 
@@ -193,7 +193,7 @@ func Test_RouteFilterExit(t *testing.T) {
 	r := newRequest("GET", "/RouteFilter", nil)
 	w := httptest.NewRecorder()
 
-	c := New()
+	c := New(JSONEncoding)
 
 	c.Get("/RouteFilter",
 
@@ -247,7 +247,7 @@ func Test_NotFoundHandler(t *testing.T) {
 		c.ServeJSONWithStatus(http.StatusNotFound, m)
 	}
 
-	c := New()
+	c := New(JSONEncoding)
 	c.AddNotFoundHandler(nf)
 
 	c.Get("/",
@@ -281,7 +281,7 @@ func Test_ServerErrorHandler(t *testing.T) {
 		c.ServeJSONWithStatus(http.StatusInternalServerError, m)
 	}
 
-	c := New()
+	c := New(JSONEncoding)
 	c.AddServerErrHanlder(se)
 
 	c.Get("/",

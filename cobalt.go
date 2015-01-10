@@ -42,16 +42,22 @@ const (
 
 	// HeadMethod is a http HEAD
 	HeadMethod = "HEAD"
+
+	// JSONEncoding json based encoding
+	JSONEncoding EncodingType = 1
+
+	// MSGPackEncoding msgpack based encoding, http://msgpack.org
+	MSGPackEncoding EncodingType = 2
 )
 
 type (
-
 	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
 		router      *httptreemux.TreeMux
 		prefilters  []FilterHandler
 		postfilters []Handler
 		serverError Handler
+		encodingT   EncodingType
 	}
 
 	// Handler represents a request handler that is called by cobalt
@@ -59,11 +65,18 @@ type (
 
 	// FilterHandler is the handler that all pre and route filters implement
 	FilterHandler func(c *Context) bool
+
+	// EncodingType denotes the encoding type
+	EncodingType int
 )
 
 // New creates a new instance of cobalt.
-func New() *Cobalt {
-	return &Cobalt{router: httptreemux.New()}
+func New(et EncodingType) *Cobalt {
+	if et != MSGPackEncoding {
+		et = JSONEncoding
+	}
+
+	return &Cobalt{router: httptreemux.New(), encodingT: et}
 }
 
 // AddPrefilter adds a prefilter hanlder to a dispatcher instance.
@@ -84,7 +97,7 @@ func (c *Cobalt) AddServerErrHanlder(h Handler) {
 // AddNotFoundHandler adds a not found handler
 func (c *Cobalt) AddNotFoundHandler(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
-		ctx := NewContext(req, w, nil)
+		ctx := NewContext(req, w, nil, c.encodingT)
 		h(ctx)
 	}
 
@@ -145,7 +158,7 @@ func (c *Cobalt) Run(addr string) {
 func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
-		ctx := NewContext(req, w, p)
+		ctx := NewContext(req, w, p, c.encodingT)
 
 		// Handle panics
 		defer func() {
