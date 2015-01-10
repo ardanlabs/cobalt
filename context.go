@@ -67,7 +67,7 @@ func (c *Context) SetData(key string, value interface{}) {
 
 // Error returns an http Error with the specified Error string and code
 func (c *Context) Error(body interface{}, status int) {
-	c.ServeJSONWithStatus(status, body)
+	c.ServeWithStatus(status, body)
 }
 
 // Serve is a helper method to return encoded msg based on type from a struct type.
