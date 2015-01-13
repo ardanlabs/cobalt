@@ -79,6 +79,11 @@ func New(et EncodingType) *Cobalt {
 	return &Cobalt{router: httptreemux.New(), encodingT: et}
 }
 
+// Encoding returns the current encoding value
+func (c *Cobalt) Encoding() EncodingType {
+	return c.encodingT
+}
+
 // AddPrefilter adds a prefilter hanlder to a dispatcher instance.
 func (c *Cobalt) AddPrefilter(h FilterHandler) {
 	c.prefilters = append(c.prefilters, h)

@@ -149,6 +149,7 @@ func (c *Context) ServeMPackWithCache(val interface{}, seconds int64) {
 		c.Response.Header().Set(CacheControlHeader, fmt.Sprintf("private, must-revalidate, max-age=%d", seconds))
 	}
 	c.Response.Header().Set("Content-Type", msgPackContent)
+	c.Response.WriteHeader(http.StatusOK)
 	msgpack.NewEncoder(c.Response).Encode(val)
 }
 
