@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"bitbucket.org/ardanlabs/msgpack"
 )
 
 var r = map[int][]string{
@@ -34,7 +36,7 @@ func Test_PreFilters(t *testing.T) {
 
 	data := "PREFILTER"
 	// pre filters
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 
 	c.AddPrefilter(func(ctx *Context) bool {
 		ctx.SetData("PRE", data)
@@ -66,7 +68,7 @@ func Test_PreFiltersExit(t *testing.T) {
 
 	data := "PREFILTER_EXIT"
 	code := http.StatusBadRequest
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 
 	c.AddPrefilter(func(ctx *Context) bool {
 		ctx.Response.WriteHeader(code)
@@ -94,7 +96,7 @@ func Test_PreFiltersExit(t *testing.T) {
 
 // Test_Routes tests the routing of requests.
 func Test_Routes(t *testing.T) {
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 
 	// GET
 	c.Get("/", func(ctx *Context) {
@@ -159,7 +161,7 @@ func Test_RouteFiltersSettingData(t *testing.T) {
 	// test route filter setting
 	data := "ROUTEFILTER"
 
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 
 	c.Get("/RouteFilter",
 
@@ -193,7 +195,7 @@ func Test_RouteFilterExit(t *testing.T) {
 	r := newRequest("GET", "/RouteFilter", nil)
 	w := httptest.NewRecorder()
 
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 
 	c.Get("/RouteFilter",
 
@@ -244,10 +246,10 @@ func Test_NotFoundHandler(t *testing.T) {
 	m := struct{ Message string }{"Not Found"}
 
 	nf := func(c *Context) {
-		c.ServeJSONWithStatus(http.StatusNotFound, m)
+		c.ServeWithStatus(m, http.StatusNotFound)
 	}
 
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 	c.AddNotFoundHandler(nf)
 
 	c.Get("/",
@@ -278,10 +280,10 @@ func Test_ServerErrorHandler(t *testing.T) {
 	m := struct{ Message string }{"Internal Error"}
 
 	se := func(c *Context) {
-		c.ServeJSONWithStatus(http.StatusInternalServerError, m)
+		c.ServeWithStatus(m, http.StatusInternalServerError)
 	}
 
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 	c.AddServerErrHanlder(se)
 
 	c.Get("/",
@@ -302,4 +304,24 @@ func Test_ServerErrorHandler(t *testing.T) {
 	if msg.Message != m.Message {
 		t.Errorf("expected body to be %s instead got %s", msg.Message, m.Message)
 	}
+}
+
+type JSONEncoder struct{}
+
+func (enc *JSONEncoder) Encode(w io.Writer, val interface{}) error {
+	return json.NewEncoder(w).Encode(val)
+}
+
+func (enc *JSONEncoder) ContentType() string {
+	return "application/json;charset=UTF-8"
+}
+
+type MPackEncoder struct{}
+
+func (enc *MPackEncoder) Encode(w io.Writer, val interface{}) error {
+	return msgpack.NewEncoder(w).Encode(val)
+}
+
+func (enc *MPackEncoder) ContentType() string {
+	return "application/x-msgpack"
 }

@@ -44,10 +44,10 @@ func Test_ContextServeJSON(t *testing.T) {
 	}
 
 	hand := func(c *Context) {
-		c.ServeJSON(&t1)
+		c.Serve(&t1)
 	}
 
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 
 	c.Get("/", hand, nil)
 
@@ -58,8 +58,8 @@ func Test_ContextServeJSON(t *testing.T) {
 	}
 
 	contentType := w.Header().Get("Content-Type")
-	if contentType != jsonContent {
-		t.Fatalf("expected content type to be %s, instead got %s", jsonContent, contentType)
+	if contentType == "" {
+		t.Fatalf("expected content type to not be empty")
 	}
 
 	var response T1
@@ -110,10 +110,10 @@ func Test_ContextServeMPack(t *testing.T) {
 	}
 
 	hand := func(c *Context) {
-		c.ServeMPack(&t1)
+		c.Serve(&t1)
 	}
 
-	c := New(MSGPackEncoding)
+	c := New(&MPackEncoder{})
 
 	c.Get("/", hand, nil)
 
@@ -124,8 +124,8 @@ func Test_ContextServeMPack(t *testing.T) {
 	}
 
 	contentType := w.Header().Get("Content-Type")
-	if contentType != msgPackContent {
-		t.Fatalf("expected content type to be %s, instead got %s", msgPackContent, contentType)
+	if contentType == "" {
+		t.Fatal("expected content type to not be empty")
 	}
 
 	var response T1

@@ -48,7 +48,7 @@ var data = `[
 
 func BenchmarkContextRequest(b *testing.B) {
 	path := "/Hello/:name/World"
-	c := New(JSONEncoding)
+	c := New(&JSONEncoder{})
 
 	c.AddPrefilter(func(c *Context) bool {
 		c.SetData("DATA", data)

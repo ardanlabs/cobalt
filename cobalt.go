@@ -16,6 +16,7 @@ package cobalt
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -42,22 +43,23 @@ const (
 
 	// HeadMethod is a http HEAD
 	HeadMethod = "HEAD"
-
-	// JSONEncoding json based encoding
-	JSONEncoding EncodingType = 1
-
-	// MSGPackEncoding msgpack based encoding, http://msgpack.org
-	MSGPackEncoding EncodingType = 2
 )
 
 type (
+	// Encoder is the interface used for the encoder in Cobalt. It allows the use
+	// of multiple Encoders within cobalt
+	Encoder interface {
+		Encode(w io.Writer, v interface{}) error
+		ContentType() string
+	}
+
 	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
 		router      *httptreemux.TreeMux
 		prefilters  []FilterHandler
 		postfilters []Handler
 		serverError Handler
-		encodingT   EncodingType
+		encoder     Encoder
 	}
 
 	// Handler represents a request handler that is called by cobalt
@@ -65,23 +67,11 @@ type (
 
 	// FilterHandler is the handler that all pre and route filters implement
 	FilterHandler func(c *Context) bool
-
-	// EncodingType denotes the encoding type
-	EncodingType int
 )
 
 // New creates a new instance of cobalt.
-func New(et EncodingType) *Cobalt {
-	if et != MSGPackEncoding {
-		et = JSONEncoding
-	}
-
-	return &Cobalt{router: httptreemux.New(), encodingT: et}
-}
-
-// Encoding returns the current encoding value
-func (c *Cobalt) Encoding() EncodingType {
-	return c.encodingT
+func New(e Encoder) *Cobalt {
+	return &Cobalt{router: httptreemux.New(), encoder: e}
 }
 
 // AddPrefilter adds a prefilter hanlder to a dispatcher instance.
@@ -102,7 +92,7 @@ func (c *Cobalt) AddServerErrHanlder(h Handler) {
 // AddNotFoundHandler adds a not found handler
 func (c *Cobalt) AddNotFoundHandler(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
-		ctx := NewContext(req, w, nil, c.encodingT)
+		ctx := NewContext(req, w, nil, c.encoder)
 		h(ctx)
 	}
 
@@ -163,7 +153,7 @@ func (c *Cobalt) Run(addr string) {
 func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
-		ctx := NewContext(req, w, p, c.encodingT)
+		ctx := NewContext(req, w, p, c.encoder)
 
 		// Handle panics
 		defer func() {
