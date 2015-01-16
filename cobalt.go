@@ -46,10 +46,11 @@ const (
 )
 
 type (
-	// Encoder is the interface used for the encoder in Cobalt. It allows the use
+	// Coder is the interface used for the encoder in Cobalt. It allows the use
 	// of multiple Encoders within cobalt
-	Encoder interface {
+	Coder interface {
 		Encode(w io.Writer, v interface{}) error
+		Decode(r io.Reader, v interface{}) error
 		ContentType() string
 	}
 
@@ -59,7 +60,7 @@ type (
 		prefilters  []FilterHandler
 		postfilters []Handler
 		serverError Handler
-		encoder     Encoder
+		coder       Coder
 	}
 
 	// Handler represents a request handler that is called by cobalt
@@ -70,8 +71,13 @@ type (
 )
 
 // New creates a new instance of cobalt.
-func New(e Encoder) *Cobalt {
-	return &Cobalt{router: httptreemux.New(), encoder: e}
+func New(coder Coder) *Cobalt {
+	return &Cobalt{router: httptreemux.New(), coder: coder}
+}
+
+// Coder returns the Coder configured in Cobalt
+func (c *Cobalt) Coder() Coder {
+	return c.coder
 }
 
 // AddPrefilter adds a prefilter hanlder to a dispatcher instance.
@@ -92,7 +98,7 @@ func (c *Cobalt) AddServerErrHanlder(h Handler) {
 // AddNotFoundHandler adds a not found handler
 func (c *Cobalt) AddNotFoundHandler(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
-		ctx := NewContext(req, w, nil, c.encoder)
+		ctx := NewContext(req, w, nil, c.coder)
 		h(ctx)
 	}
 
@@ -153,7 +159,7 @@ func (c *Cobalt) Run(addr string) {
 func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
-		ctx := NewContext(req, w, p, c.encoder)
+		ctx := NewContext(req, w, p, c.coder)
 
 		// Handle panics
 		defer func() {

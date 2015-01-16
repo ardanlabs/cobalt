@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -21,19 +22,19 @@ type (
 		// data that can be stored in the context for life of request
 		data map[string]interface{}
 		// params are the request parameters from the http request
-		params  map[string]string
-		encoder Encoder
+		params map[string]string
+		coder  Coder
 	}
 )
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
-func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string, e Encoder) *Context {
+func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string, coder Coder) *Context {
 	return &Context{
 		Request:  req,
 		Response: resp,
 		data:     make(map[string]interface{}),
 		params:   p,
-		encoder:  e,
+		coder:    coder,
 	}
 }
 
@@ -63,6 +64,11 @@ func (c *Context) Error(body interface{}, status int) {
 	c.serveEncoded(body, 0, status)
 }
 
+// Decode decodes a reader into the body
+func (c *Context) Decode(r io.Reader, body interface{}) error {
+	return c.coder.Decode(r, body)
+}
+
 // Serve is a helper method to return encoded msg based on type from a struct type.
 func (c *Context) Serve(val interface{}) {
 	c.serveEncoded(val, http.StatusOK, 0)
@@ -84,13 +90,13 @@ func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
 		status = http.StatusOK
 	}
 
-	c.Response.Header().Set("Content-Type", c.encoder.ContentType())
+	c.Response.Header().Set("Content-Type", c.coder.ContentType())
 	if seconds > 0 {
 		c.Response.Header().Set(CacheControlHeader, fmt.Sprintf("private, must-revalidate, max-age=%d", seconds))
 	}
 
 	c.Response.WriteHeader(status)
-	c.encoder.Encode(c.Response, val)
+	c.coder.Encode(c.Response, val)
 }
 
 // ServeResponse serves a response with the status and content type sent
