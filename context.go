@@ -64,9 +64,14 @@ func (c *Context) Error(body interface{}, status int) {
 	c.serveEncoded(body, 0, status)
 }
 
-// Decode decodes a reader into the body
-func (c *Context) Decode(r io.Reader, body interface{}) error {
-	return c.coder.Decode(r, body)
+// Decode decodes a reader into val
+func (c *Context) Decode(r io.Reader, val interface{}) error {
+	return c.coder.Decode(r, val)
+}
+
+// DecodeBody decodes a request body into val
+func (c *Context) DecodeBody(val interface{}) error {
+	return c.coder.Decode(c.Request.Body, val)
 }
 
 // Serve is a helper method to return encoded msg based on type from a struct type.
