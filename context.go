@@ -40,7 +40,11 @@ func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string
 
 // RouteValue returns the value for the associated key from the url parameters.
 func (c *Context) RouteValue(key string) string {
-	return c.params[key]
+	value, ok := c.params[key]
+	if !ok {
+		return ""
+	}
+	return value
 }
 
 // AllRouteValues returns all the route values.
@@ -51,7 +55,11 @@ func (c *Context) AllRouteValues() map[string]string {
 // GetData returns the value for the specified key from the context data. Usually used by prefilters to pass data to the http handler
 // and post filters.
 func (c *Context) GetData(key string) interface{} {
-	return c.data[key]
+	data, ok := c.data[key]
+	if !ok {
+		return nil
+	}
+	return data
 }
 
 // SetData sets the data for the specified key in the context instance.
@@ -91,6 +99,7 @@ func (c *Context) ServeCachedWithStatus(val interface{}, status int, seconds int
 
 // serveEncoded serves a value (val) encoded with expiring in seconds and a status
 func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
+	//todo: review
 	if status == 0 {
 		status = http.StatusOK
 	}

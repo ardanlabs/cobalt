@@ -164,12 +164,13 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		// Handle panics
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Printf("Panic, Recovering")
+				fmt.Printf("cobalt: Panic Error => %v\n", r)
+				fmt.Printf("cobalt: Panic, Recovering\n")
 				buf := make([]byte, 10000)
 				runtime.Stack(buf, false)
-				fmt.Printf("%s", string(buf))
+				fmt.Printf("%s\n", string(buf))
 				if c.serverError != nil {
-					fmt.Printf("Panic, Recovering")
+					fmt.Printf("cobalt: Panic, Recovering")
 					c.serverError(ctx)
 					return
 				}
