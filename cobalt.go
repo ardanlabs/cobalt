@@ -175,8 +175,10 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 					return
 				}
 			}
+			log.Printf("finished: %d %s %s - %s\n", ctx.status, req.Method, req.RequestURI, req.RemoteAddr)
 		}()
 
+		log.Printf("started: %s %s - %s", req.Method, req.RequestURI, req.RemoteAddr)
 		// global filters. benchmarked
 		// todo: range
 		for i := 0; i < len(c.prefilters); i++ {
@@ -202,6 +204,7 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		for _, filter := range c.postfilters {
 			filter(ctx)
 		}
+
 	}
 
 	c.router.Handle(method, route, f)

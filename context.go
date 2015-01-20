@@ -24,6 +24,7 @@ type (
 		// params are the request parameters from the http request
 		params map[string]string
 		coder  Coder
+		status int
 	}
 )
 
@@ -111,6 +112,8 @@ func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
 
 	c.Response.WriteHeader(status)
 	c.coder.Encode(c.Response, val)
+
+	c.status = status
 }
 
 // ServeResponse serves a response with the status and content type sent
