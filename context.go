@@ -111,7 +111,10 @@ func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
 	}
 
 	c.Response.WriteHeader(status)
-	c.coder.Encode(c.Response, val)
+
+	if val != nil {
+		c.coder.Encode(c.Response, val)
+	}
 
 	c.status = status
 }
