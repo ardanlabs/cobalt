@@ -106,32 +106,32 @@ func (c *Cobalt) AddNotFoundHandler(h Handler) {
 }
 
 // Get adds a route with an associated handler that matches a GET verb in a request.
-func (c *Cobalt) Get(route string, h Handler, f []FilterHandler) {
+func (c *Cobalt) Get(route string, h Handler, f ...FilterHandler) {
 	c.addroute(GetMethod, route, h, f)
 }
 
 // Post adds a route with an associated handler that matches a POST verb in a request.
-func (c *Cobalt) Post(route string, h Handler, f []FilterHandler) {
+func (c *Cobalt) Post(route string, h Handler, f ...FilterHandler) {
 	c.addroute(PostMethod, route, h, f)
 }
 
 // Put adds a route with an associated handler that matches a PUT verb in a request.
-func (c *Cobalt) Put(route string, h Handler, f []FilterHandler) {
+func (c *Cobalt) Put(route string, h Handler, f ...FilterHandler) {
 	c.addroute(PutMethod, route, h, f)
 }
 
 // Delete adds a route with an associated handler that matches a DELETE verb in a request.
-func (c *Cobalt) Delete(route string, h Handler, f []FilterHandler) {
+func (c *Cobalt) Delete(route string, h Handler, f ...FilterHandler) {
 	c.addroute(DeleteMethod, route, h, f)
 }
 
 // Options adds a route with an associated handler that matches a OPTIONS verb in a request.
-func (c *Cobalt) Options(route string, h Handler, f []FilterHandler) {
+func (c *Cobalt) Options(route string, h Handler, f ...FilterHandler) {
 	c.addroute(OptionsMethod, route, h, f)
 }
 
 // Head adds a route with an associated handler that matches a HEAD verb in a request.
-func (c *Cobalt) Head(route string, h Handler, f []FilterHandler) {
+func (c *Cobalt) Head(route string, h Handler, f ...FilterHandler) {
 	c.addroute(HeadMethod, route, h, f)
 }
 
