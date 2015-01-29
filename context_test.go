@@ -43,13 +43,11 @@ func Test_ContextServeJSON(t *testing.T) {
 		Is:     is,
 	}
 
-	hand := func(c *Context) {
+	c := New(JSONEncoder{})
+
+	c.Get("/", func(c *Context) {
 		c.Serve(&t1)
-	}
-
-	c := New(&JSONEncoder{})
-
-	c.Get("/", hand, nil)
+	})
 
 	c.ServeHTTP(w, r)
 
@@ -57,15 +55,12 @@ func Test_ContextServeJSON(t *testing.T) {
 		t.Errorf("expected status code to be %d instead got %d", http.StatusOK, w.Code)
 	}
 
-	contentType := w.Header().Get("Content-Type")
-	if contentType == "" {
+	if contentType := w.Header().Get("Content-Type"); contentType == "" {
 		t.Fatalf("expected content type to not be empty")
 	}
 
 	var response T1
-	e := json.Unmarshal([]byte(w.Body.String()), &response)
-
-	if e != nil {
+	if e := json.Unmarshal([]byte(w.Body.String()), &response); e != nil {
 		t.Fatalf("expected no err unmarshaling response, instead got [%s]", e.Error())
 	}
 
@@ -109,13 +104,11 @@ func Test_ContextServeMPack(t *testing.T) {
 		Is:     is,
 	}
 
-	hand := func(c *Context) {
+	c := New(MPackEncoder{})
+
+	c.Get("/", func(c *Context) {
 		c.Serve(&t1)
-	}
-
-	c := New(&MPackEncoder{})
-
-	c.Get("/", hand, nil)
+	})
 
 	c.ServeHTTP(w, r)
 

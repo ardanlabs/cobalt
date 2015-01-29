@@ -49,7 +49,7 @@ func Test_PreFilters(t *testing.T) {
 			t.Errorf("expected %s got %s", data, v)
 		}
 		ctx.Response.Write([]byte(data))
-	}, nil)
+	})
 
 	c.ServeHTTP(w, r)
 
@@ -101,50 +101,50 @@ func Test_Routes(t *testing.T) {
 	// GET
 	c.Get("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Get/"))
-	}, nil)
+	})
 	c.Get("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Get/foo"))
-	}, nil)
+	})
 
 	// POST
 	c.Post("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Post/"))
-	}, nil)
+	})
 	c.Post("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Post/foo"))
-	}, nil)
+	})
 
 	// PUT
 	c.Put("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Put/"))
-	}, nil)
+	})
 	c.Put("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Put/foo"))
-	}, nil)
+	})
 
 	// Delete
 	c.Delete("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Delete/"))
-	}, nil)
+	})
 	c.Delete("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Delete/foo"))
-	}, nil)
+	})
 
 	// OPTIONS
 	c.Options("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Options/"))
-	}, nil)
+	})
 	c.Options("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Options/foo"))
-	}, nil)
+	})
 
 	// HEAD
 	c.Head("/", func(ctx *Context) {
 		ctx.Response.Write([]byte("Head/"))
-	}, nil)
+	})
 	c.Head("/foo", func(ctx *Context) {
 		ctx.Response.Write([]byte("Head/foo"))
-	}, nil)
+	})
 
 	for _, v := range r {
 		AssertRoute(v[0], v[1], c, t)
@@ -172,11 +172,11 @@ func Test_RouteFiltersSettingData(t *testing.T) {
 			}
 			ctx.Response.Write([]byte(data))
 		},
-		[]FilterHandler{
-			func(c *Context) bool {
-				c.SetData("PRE", data)
-				return true
-			}})
+
+		func(c *Context) bool {
+			c.SetData("PRE", data)
+			return true
+		})
 
 	c.ServeHTTP(w, r)
 
@@ -206,12 +206,12 @@ func Test_RouteFilterExit(t *testing.T) {
 			}
 			ctx.Response.Write([]byte("FOO"))
 		},
-		[]FilterHandler{
-			func(ctx *Context) bool {
-				ctx.Response.WriteHeader(http.StatusUnauthorized)
-				ctx.Response.Write([]byte(data))
-				return false
-			}})
+
+		func(ctx *Context) bool {
+			ctx.Response.WriteHeader(http.StatusUnauthorized)
+			ctx.Response.Write([]byte(data))
+			return false
+		})
 
 	c.ServeHTTP(w, r)
 
@@ -308,28 +308,28 @@ func Test_ServerErrorHandler(t *testing.T) {
 
 type JSONEncoder struct{}
 
-func (enc *JSONEncoder) Encode(w io.Writer, val interface{}) error {
+func (enc JSONEncoder) Encode(w io.Writer, val interface{}) error {
 	return json.NewEncoder(w).Encode(val)
 }
 
-func (enc *JSONEncoder) Decode(r io.Reader, val interface{}) error {
+func (enc JSONEncoder) Decode(r io.Reader, val interface{}) error {
 	return json.NewDecoder(r).Decode(val)
 }
 
-func (enc *JSONEncoder) ContentType() string {
+func (enc JSONEncoder) ContentType() string {
 	return "application/json;charset=UTF-8"
 }
 
 type MPackEncoder struct{}
 
-func (enc *MPackEncoder) Encode(w io.Writer, val interface{}) error {
+func (enc MPackEncoder) Encode(w io.Writer, val interface{}) error {
 	return msgpack.NewEncoder(w).Encode(val)
 }
 
-func (enc *MPackEncoder) Decode(r io.Reader, val interface{}) error {
+func (enc MPackEncoder) Decode(r io.Reader, val interface{}) error {
 	return msgpack.NewDecoder(r).Decode(val)
 }
 
-func (enc *MPackEncoder) ContentType() string {
+func (enc MPackEncoder) ContentType() string {
 	return "application/x-msgpack"
 }
