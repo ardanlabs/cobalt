@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"bitbucket.org/ardanlabs/cobalt/uuid"
 )
 
 const (
@@ -17,6 +19,7 @@ type (
 	// Context is scoped at request level, it is currently not Go routine safe for writes, so all writes
 	// to context should be done by 1 go routine
 	Context struct {
+		ID       string
 		Response http.ResponseWriter
 		Request  *http.Request
 		// data that can be stored in the context for life of request
@@ -30,7 +33,10 @@ type (
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
 func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string, coder Coder) *Context {
+	id, _ := uuid.NewV4()
+
 	return &Context{
+		ID:       id.String(),
 		Request:  req,
 		Response: resp,
 		data:     make(map[string]interface{}),
