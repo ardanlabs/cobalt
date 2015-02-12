@@ -175,10 +175,10 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 					return
 				}
 			}
-			log.Printf("finished: %d %s %s - %s\n", ctx.status, req.Method, req.RequestURI, req.RemoteAddr)
+			log.Printf("%s => finished: %d %s %s - %s\n", ctx.ID, ctx.status, req.Method, req.RequestURI, req.RemoteAddr)
 		}()
 
-		log.Printf("started: %s %s - %s", req.Method, req.RequestURI, req.RemoteAddr)
+		log.Printf("%s => started: %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
 
 		// global filters. benchmarked
 		for _, pf := range c.prefilters {
