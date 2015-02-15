@@ -180,7 +180,7 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 
 		log.Printf("%s => started: %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
 
-		// global filters. benchmarked
+		// global filters.
 		for _, pf := range c.prefilters {
 			if keepGoing := pf(ctx); !keepGoing {
 				return
@@ -198,6 +198,7 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		// call route handler
 		h(ctx)
 
+		// handle any post handler filters
 		for _, f := range c.postfilters {
 			f(ctx)
 		}
