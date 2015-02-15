@@ -99,6 +99,14 @@ func (c *Context) ServeWithStatus(val interface{}, status int) {
 	c.serveEncoded(val, status, 0)
 }
 
+func (c *Context) ServeStatus(status int) {
+	if status == 0 {
+		status = http.StatusOK
+	}
+	c.status = status
+	c.Response.WriteHeader(c.status)
+}
+
 // ServeCachedWithStatus is a helper method to return encoded msg based on type from a struct type.
 func (c *Context) ServeCachedWithStatus(val interface{}, status int, seconds int) {
 	c.serveEncoded(val, status, seconds)
