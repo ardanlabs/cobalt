@@ -15,7 +15,6 @@
 package cobalt
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -164,21 +163,21 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		// Handle panics
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Printf("cobalt: Panic Error => %v\n", r)
-				fmt.Printf("cobalt: Panic, Recovering\n")
+				log.Printf("cobalt: Panic Error => %v\n", r)
+				log.Printf("cobalt: Panic, Recovering\n")
 				buf := make([]byte, 10000)
 				runtime.Stack(buf, false)
-				fmt.Printf("%s\n", string(buf))
+				log.Printf("%s\n", string(buf))
 				if c.serverError != nil {
-					fmt.Printf("cobalt: Panic, Recovering")
+					log.Printf("cobalt: Panic, Recovering")
 					c.serverError(ctx)
 					return
 				}
 			}
-			log.Printf("%s => finished: %d %s %s - %s\n", ctx.ID, ctx.status, req.Method, req.RequestURI, req.RemoteAddr)
+			log.Printf("%s => complete: %d %s %s - %s\n", ctx.ID, ctx.status, req.Method, req.RequestURI, req.RemoteAddr)
 		}()
 
-		log.Printf("%s => started: %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
+		log.Printf("%s =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
 
 		// global filters.
 		for _, pf := range c.prefilters {
