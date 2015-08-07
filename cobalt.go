@@ -178,7 +178,7 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		}()
 
 		log.Printf("%s =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
-
+		w.Header().Set("X-Request-Id", ctx.ID)
 		// global filters.
 		for _, pf := range c.prefilters {
 			if keepGoing := pf(ctx); !keepGoing {
