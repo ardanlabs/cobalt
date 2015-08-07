@@ -99,6 +99,7 @@ func (c *Context) ServeWithStatus(val interface{}, status int) {
 	c.serveEncoded(val, status, 0)
 }
 
+// ServeStatus serves up the status passed in.
 func (c *Context) ServeStatus(status int) {
 	if status == 0 {
 		status = http.StatusOK
