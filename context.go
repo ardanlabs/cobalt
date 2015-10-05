@@ -128,7 +128,10 @@ func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
 	c.Response.WriteHeader(status)
 
 	if val != nil {
-		c.coder.Encode(c.Response, val)
+		if err := c.coder.Encode(c.Response, val); err != nil {
+			c.Response.WriteHeader(http.StatusInternalServerError)
+			status = http.StatusInternalServerError
+		}
 	}
 
 	c.status = status
@@ -136,8 +139,12 @@ func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
 
 // ServeResponse serves a response with the status and content type sent
 func (c *Context) ServeResponse(resp []byte, status int, contentType string) {
+
 	if contentType != "" {
 		c.Response.Header().Set("Content-Type", contentType)
+	}
+	if contentType == "" {
+		c.Response.Header().Set("Content-Type", c.coder.ContentType())
 	}
 	c.Response.WriteHeader(status)
 	c.Response.Write(resp)
