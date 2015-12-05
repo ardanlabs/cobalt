@@ -24,26 +24,6 @@ import (
 	"bitbucket.org/ardanlabs/cobalt/httptreemux"
 )
 
-const (
-	// get is a http GET
-	get = "GET"
-
-	// post is a http POST
-	post = "POST"
-
-	// put is a http PUT
-	put = "PUT"
-
-	// delete is a http DELETE
-	delete = "DELETE"
-
-	// OptionsMethod is a http OPTIONS
-	OptionsMethod = "OPTIONS"
-
-	// HeadMethod is a http HEAD
-	HeadMethod = "HEAD"
-)
-
 type (
 	// Coder is the interface used for the encoder in Cobalt. It allows the use
 	// of multiple Encoders within cobalt
@@ -180,15 +160,15 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 		w.Header().Set("X-Request-Id", ctx.ID)
 		// global filters.
 		for _, pf := range c.prefilters {
-			if keepGoing := pf(ctx); !keepGoing {
+			if ok := pf(ctx); !ok {
 				return
 			}
 		}
 
 		// route specific filters.
 		for _, f := range filters {
-			keepGoing := f(ctx)
-			if !keepGoing {
+			ok := f(ctx)
+			if !ok {
 				return
 			}
 		}
