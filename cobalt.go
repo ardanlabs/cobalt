@@ -25,17 +25,17 @@ import (
 )
 
 const (
-	// GetMethod is a http GET
-	GetMethod = "GET"
+	// get is a http GET
+	get = "GET"
 
-	// PostMethod is a http POST
-	PostMethod = "POST"
+	// post is a http POST
+	post = "POST"
 
-	// PutMethod is a http PUT
-	PutMethod = "PUT"
+	// put is a http PUT
+	put = "PUT"
 
-	// DeleteMethod is a http DELETE
-	DeleteMethod = "DELETE"
+	// delete is a http DELETE
+	delete = "DELETE"
 
 	// OptionsMethod is a http OPTIONS
 	OptionsMethod = "OPTIONS"
@@ -106,32 +106,32 @@ func (c *Cobalt) AddNotFoundHandler(h Handler) {
 
 // Get adds a route with an associated handler that matches a GET verb in a request.
 func (c *Cobalt) Get(route string, h Handler, f ...FilterHandler) {
-	c.addroute(GetMethod, route, h, f)
+	c.addroute("GET", route, h, f)
 }
 
 // Post adds a route with an associated handler that matches a POST verb in a request.
 func (c *Cobalt) Post(route string, h Handler, f ...FilterHandler) {
-	c.addroute(PostMethod, route, h, f)
+	c.addroute("POST", route, h, f)
 }
 
 // Put adds a route with an associated handler that matches a PUT verb in a request.
 func (c *Cobalt) Put(route string, h Handler, f ...FilterHandler) {
-	c.addroute(PutMethod, route, h, f)
+	c.addroute("PUT", route, h, f)
 }
 
 // Delete adds a route with an associated handler that matches a DELETE verb in a request.
 func (c *Cobalt) Delete(route string, h Handler, f ...FilterHandler) {
-	c.addroute(DeleteMethod, route, h, f)
+	c.addroute("DELETE", route, h, f)
 }
 
 // Options adds a route with an associated handler that matches a OPTIONS verb in a request.
 func (c *Cobalt) Options(route string, h Handler, f ...FilterHandler) {
-	c.addroute(OptionsMethod, route, h, f)
+	c.addroute("OPTIONS", route, h, f)
 }
 
 // Head adds a route with an associated handler that matches a HEAD verb in a request.
 func (c *Cobalt) Head(route string, h Handler, f ...FilterHandler) {
-	c.addroute(HeadMethod, route, h, f)
+	c.addroute("HEAD", route, h, f)
 }
 
 // ServeHTTP implements the HandlerFunc that process the http request.
@@ -147,7 +147,6 @@ func (c *Cobalt) Run(addr string) {
 	log.SetPrefix("[cobalt] ")
 	log.Printf("starting, listening on %s", addr)
 
-	//http.Handle("/", c.Router)
 	err := http.ListenAndServe(addr, c)
 	if err != nil {
 		log.Fatalf(err.Error())

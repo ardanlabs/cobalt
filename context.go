@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	// CacheControlHeader represents the http cache control header
-	CacheControlHeader = "Cache-control"
+	// cacheControlHeader represents the http cache control header
+	cacheControlHeader = "Cache-control"
 )
 
 type (
@@ -115,14 +115,13 @@ func (c *Context) ServeCachedWithStatus(val interface{}, status int, seconds int
 
 // serveEncoded serves a value (val) encoded with expiring in seconds and a status
 func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
-	//todo: review
 	if status == 0 {
 		status = http.StatusOK
 	}
 
 	c.Response.Header().Set("Content-Type", c.coder.ContentType())
 	if seconds > 0 {
-		c.Response.Header().Set(CacheControlHeader, fmt.Sprintf("private, must-revalidate, max-age=%d", seconds))
+		c.Response.Header().Set(cacheControlHeader, fmt.Sprintf("private, must-revalidate, max-age=%d", seconds))
 	}
 
 	c.Response.WriteHeader(status)
