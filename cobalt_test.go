@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"bitbucket.org/ardanlabs/msgpack"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 var r = map[int][]string{
@@ -28,8 +28,8 @@ func newRequest(method, path string, body io.Reader) *http.Request {
 	return r
 }
 
-// Test_PreFilters tests pre-filters
-func Test_PreFilters(t *testing.T) {
+// TestPreFilters tests pre-filters
+func TestPreFilters(t *testing.T) {
 	//setup request
 	r := newRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
@@ -61,8 +61,8 @@ func Test_PreFilters(t *testing.T) {
 	}
 }
 
-// Test_PreFiltersExit tests pre-filters stopping the request.
-func Test_PreFiltersExit(t *testing.T) {
+// TestPreFiltersExit tests pre-filters stopping the request.
+func TestPreFiltersExit(t *testing.T) {
 	r := newRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 
@@ -94,8 +94,8 @@ func Test_PreFiltersExit(t *testing.T) {
 	}
 }
 
-// Test_Routes tests the routing of requests.
-func Test_Routes(t *testing.T) {
+// TestRoutes tests the routing of requests.
+func TestRoutes(t *testing.T) {
 	c := New(&JSONEncoder{})
 
 	// GET
@@ -151,8 +151,8 @@ func Test_Routes(t *testing.T) {
 	}
 }
 
-// Test_RouteFiltersSettingData tests route filters setting data and passing it to handlers.
-func Test_RouteFiltersSettingData(t *testing.T) {
+// TestRouteFiltersSettingData tests route filters setting data and passing it to handlers.
+func TestRouteFiltersSettingData(t *testing.T) {
 
 	//setup request
 	r := newRequest("GET", "/RouteFilter", nil)
@@ -188,8 +188,8 @@ func Test_RouteFiltersSettingData(t *testing.T) {
 	}
 }
 
-// Test_RouteFilterExit tests route filters stopping the request.
-func Test_RouteFilterExit(t *testing.T) {
+// TestRouteFilterExit tests route filters stopping the request.
+func TestRouteFilterExit(t *testing.T) {
 	data := "ROUTEFILTEREXIT"
 	//setup request
 	r := newRequest("GET", "/RouteFilter", nil)
@@ -234,11 +234,11 @@ func AssertRoute(path, verb string, c *Cobalt, t *testing.T) {
 	}
 }
 
-func Test_PostFilters(t *testing.T) {
+func TestPostFilters(t *testing.T) {
 
 }
 
-func Test_NotFoundHandler(t *testing.T) {
+func TestNotFoundHandler(t *testing.T) {
 	//setup request
 	r := newRequest("GET", "/FOO", nil)
 	w := httptest.NewRecorder()
@@ -272,7 +272,7 @@ func Test_NotFoundHandler(t *testing.T) {
 	}
 }
 
-func Test_ServerErrorHandler(t *testing.T) {
+func TestServerErrorHandler(t *testing.T) {
 	//setup request
 	r := newRequest("GET", "/", nil)
 	w := httptest.NewRecorder()

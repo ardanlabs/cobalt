@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/ardanlabs/msgpack"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type (

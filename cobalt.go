@@ -21,7 +21,7 @@ import (
 	"os"
 	"runtime"
 
-	"bitbucket.org/ardanlabs/cobalt/httptreemux"
+	"bitbucket.org/ardanlabs/cobalt/httprouter"
 )
 
 type (
@@ -35,7 +35,7 @@ type (
 
 	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
-		router      *httptreemux.TreeMux
+		router      *httprouter.Router
 		prefilters  []FilterHandler
 		postfilters []Handler
 		serverError Handler
@@ -51,7 +51,7 @@ type (
 
 // New creates a new instance of cobalt.
 func New(coder Coder) *Cobalt {
-	return &Cobalt{router: httptreemux.New(), coder: coder}
+	return &Cobalt{router: httprouter.New(), coder: coder}
 }
 
 // Coder returns the Coder configured in Cobalt
@@ -81,7 +81,7 @@ func (c *Cobalt) AddNotFoundHandler(h Handler) {
 		h(ctx)
 	}
 
-	c.router.NotFoundHandler = t
+	c.router.NotFound = http.HandlerFunc(t)
 }
 
 // Get adds a route with an associated handler that matches a GET verb in a request.
@@ -136,7 +136,7 @@ func (c *Cobalt) Run(addr string) {
 // addRoute adds a route with an asscoiated method, handler and route filters.. It Builds a function which is then passed to the router.
 func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
 
-	f := func(w http.ResponseWriter, req *http.Request, p map[string]string) {
+	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 		ctx := NewContext(req, w, p, c.coder)
 
 		// Handle panics
