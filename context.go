@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"bitbucket.org/ardanlabs/cobalt/httprouter"
 	"bitbucket.org/ardanlabs/cobalt/uuid"
 )
 
@@ -25,14 +26,14 @@ type (
 		// data that can be stored in the context for life of request
 		data map[string]interface{}
 		// params are the request parameters from the http request
-		params map[string]string
+		params httprouter.Params
 		coder  Coder
 		status int
 	}
 )
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
-func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string, coder Coder) *Context {
+func NewContext(req *http.Request, resp http.ResponseWriter, p httprouter.Params, coder Coder) *Context {
 	id, _ := uuid.NewV4()
 
 	return &Context{
@@ -45,18 +46,9 @@ func NewContext(req *http.Request, resp http.ResponseWriter, p map[string]string
 	}
 }
 
-// RouteValue returns the value for the associated key from the url parameters.
-func (c *Context) RouteValue(key string) string {
-	value, ok := c.params[key]
-	if !ok {
-		return ""
-	}
-	return value
-}
-
-// AllRouteValues returns all the route values.
-func (c *Context) AllRouteValues() map[string]string {
-	return c.params
+// ParamValue returns the value for the associated key from the url parameters.
+func (c *Context) ParamValue(key string) string {
+	return c.params.ByName(key)
 }
 
 // GetData returns the value for the specified key from the context data. Usually used by prefilters to pass data to the http handler
