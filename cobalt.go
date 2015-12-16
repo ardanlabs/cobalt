@@ -153,10 +153,10 @@ func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandl
 					return
 				}
 			}
-			log.Printf("%s => complete: %d %s %s - %s\n", ctx.ID, ctx.status, req.Method, req.RequestURI, req.RemoteAddr)
+			log.Printf("%s REQUEST END => %d %s %s - %s\n", ctx.ID, ctx.status, req.Method, req.RequestURI, req.RemoteAddr)
 		}()
 
-		log.Printf("%s =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
+		log.Printf("%s REQUEST START =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
 		w.Header().Set("X-Request-Id", ctx.ID)
 		// global filters.
 		for _, pf := range c.prefilters {
