@@ -23,12 +23,12 @@ type (
 		ID       string
 		Response http.ResponseWriter
 		Request  *http.Request
+		Status   int
 		// data that can be stored in the context for life of request
 		data map[string]interface{}
 		// params are the request parameters from the http request
 		params httprouter.Params
 		coder  Coder
-		status int
 	}
 )
 
@@ -96,8 +96,8 @@ func (c *Context) ServeStatus(status int) {
 	if status == 0 {
 		status = http.StatusOK
 	}
-	c.status = status
-	c.Response.WriteHeader(c.status)
+	c.Status = status
+	c.Response.WriteHeader(c.Status)
 }
 
 // ServeCachedWithStatus is a helper method to return encoded msg based on type from a struct type.
@@ -125,7 +125,7 @@ func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
 		}
 	}
 
-	c.status = status
+	c.Status = status
 }
 
 // ServeResponse serves a response with the status and content type sent
