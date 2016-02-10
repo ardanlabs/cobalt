@@ -160,47 +160,6 @@ func TestRoutes(t *testing.T) {
 	for _, v := range r {
 		AssertRoute(v[0], v[1], c, t)
 	}
-
-}
-
-// TODO: rename
-// TestRouteFiltersSettingData tests route filters setting data and passing it to handlers.
-func TestRouteFiltersSettingData(t *testing.T) {
-
-	//setup request
-	r := newRequest("GET", "/RouteFilter", nil)
-	w := httptest.NewRecorder()
-
-	// test route filter setting
-	data := "ROUTEFILTER"
-
-	c := New(&JSONEncoder{})
-
-	mw := func(h Handler) Handler {
-		return func(c *Context) {
-			c.SetData("PRE", data)
-			h(c)
-		}
-	}
-
-	h := func(ctx *Context) {
-		v := ctx.GetData("PRE")
-		if v != data {
-			t.Errorf("expected %s got %s", data, v)
-		}
-		ctx.Response.Write([]byte(data))
-	}
-
-	c.Get("/RouteFilter", h, mw)
-
-	c.ServeHTTP(w, r)
-
-	if w.Code != 200 {
-		t.Errorf("expected status code to be 200 instead got %d", w.Code)
-	}
-	if w.Body.String() != data {
-		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
-	}
 }
 
 // AsserRoute is a helper method to tests routes
@@ -214,6 +173,7 @@ func AssertRoute(path, verb string, c *Cobalt, t *testing.T) {
 	}
 }
 
+// TestNotFoundHandler tests handler for 404.
 func TestNotFoundHandler(t *testing.T) {
 	//setup request
 	r := newRequest("GET", "/FOO", nil)
@@ -248,6 +208,7 @@ func TestNotFoundHandler(t *testing.T) {
 	}
 }
 
+// TestServerErrorHandler tests handler for 500.
 func TestServerErrorHandler(t *testing.T) {
 	//setup request
 	r := newRequest("GET", "/", nil)
