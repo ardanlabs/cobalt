@@ -2,6 +2,7 @@ package cobalt
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,69 +29,79 @@ func newRequest(method, path string, body io.Reader) *http.Request {
 	return r
 }
 
-// TestPreFilters tests pre-filters
-func TestPreFilters(t *testing.T) {
-	//setup request
+// TestReqeust tests
+func TestRequest(t *testing.T) {
 	r := newRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 
-	data := "PREFILTER"
-	// pre filters
-	c := New(&JSONEncoder{})
+	const key = "KEY"
+	const value = "DATA"
+	const code = 200
 
-	c.AddPrefilter(func(ctx *Context) bool {
-		ctx.SetData("PRE", data)
-		return true
-	})
-
-	c.Get("/", func(ctx *Context) {
-		v := ctx.GetData("PRE")
-		if v != data {
-			t.Errorf("expected %s got %s", data, v)
+	mw := func(h Handler) Handler {
+		return func(ctx *Context) {
+			ctx.SetData(key, value)
+			fmt.Println("Middleware Fired")
+			h(ctx)
 		}
-		ctx.Response.Write([]byte(data))
-	})
-
-	c.ServeHTTP(w, r)
-
-	if w.Code != 200 {
-		t.Errorf("expected status code to be 200 instead got %d", w.Code)
 	}
-	if w.Body.String() != data {
-		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
-	}
-}
 
-// TestPreFiltersExit tests pre-filters stopping the request.
-func TestPreFiltersExit(t *testing.T) {
-	r := newRequest("GET", "/", nil)
-	w := httptest.NewRecorder()
-
-	data := "PREFILTER_EXIT"
-	code := http.StatusBadRequest
-	c := New(&JSONEncoder{})
-
-	c.AddPrefilter(func(ctx *Context) bool {
-		ctx.Response.WriteHeader(code)
-		ctx.Response.Write([]byte(data))
-		return false
-	})
-
-	c.Get("/", func(ctx *Context) {
-		v := ctx.GetData("PRE")
-		if v != data {
-			t.Errorf("expected %s got %s", data, v)
+	h := func(ctx *Context) {
+		fmt.Println("Route Fired")
+		v := ctx.GetData(key)
+		if v != value {
+			t.Errorf("expected %s got %s", value, v)
 		}
-		ctx.Response.Write([]byte(data))
-	}, nil)
+		ctx.Response.Write([]byte(value))
+	}
+	c := New(&JSONEncoder{})
+	c.Get("/", h, mw)
 
 	c.ServeHTTP(w, r)
 
 	if w.Code != code {
 		t.Errorf("expected status code to be 200 instead got %d", w.Code)
 	}
-	if w.Body.String() != data {
-		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
+	if w.Body.String() != value {
+		t.Errorf("expected body to be %s instead got %s", value, w.Body.String())
+	}
+}
+
+// TestMidwareExit tests a middleware exiting.
+func TestMidwareExit(t *testing.T) {
+	r := newRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	const key = "KEY"
+	const value = "DATA"
+	const code = 400
+	c := New(&JSONEncoder{})
+
+	mw := func(h Handler) Handler {
+		return func(ctx *Context) {
+			fmt.Println("Middleware")
+			ctx.Response.WriteHeader(http.StatusBadRequest)
+			ctx.Response.Write([]byte(value))
+		}
+	}
+
+	h := func(ctx *Context) {
+		fmt.Println("Route Fired")
+		v := ctx.GetData(key)
+		if v != value {
+			t.Errorf("expected %s got %s", value, v)
+		}
+		ctx.Response.Write([]byte(value))
+	}
+	c.Get("/", h, mw)
+
+	c.ServeHTTP(w, r)
+
+	if w.Code != code {
+		t.Errorf("expected status code to be %d instead got %d", code, w.Code)
+	}
+	if w.Body.String() != value {
+		t.Errorf("expected body to be %s instead got %s", value, w.Body.String())
 	}
 }
 
@@ -149,8 +160,10 @@ func TestRoutes(t *testing.T) {
 	for _, v := range r {
 		AssertRoute(v[0], v[1], c, t)
 	}
+
 }
 
+// TODO: rename
 // TestRouteFiltersSettingData tests route filters setting data and passing it to handlers.
 func TestRouteFiltersSettingData(t *testing.T) {
 
@@ -163,60 +176,27 @@ func TestRouteFiltersSettingData(t *testing.T) {
 
 	c := New(&JSONEncoder{})
 
-	c.Get("/RouteFilter",
-
-		func(ctx *Context) {
-			v := ctx.GetData("PRE")
-			if v != data {
-				t.Errorf("expected %s got %s", data, v)
-			}
-			ctx.Response.Write([]byte(data))
-		},
-
-		func(c *Context) bool {
+	mw := func(h Handler) Handler {
+		return func(c *Context) {
 			c.SetData("PRE", data)
-			return true
-		})
+			h(c)
+		}
+	}
+
+	h := func(ctx *Context) {
+		v := ctx.GetData("PRE")
+		if v != data {
+			t.Errorf("expected %s got %s", data, v)
+		}
+		ctx.Response.Write([]byte(data))
+	}
+
+	c.Get("/RouteFilter", h, mw)
 
 	c.ServeHTTP(w, r)
 
 	if w.Code != 200 {
 		t.Errorf("expected status code to be 200 instead got %d", w.Code)
-	}
-	if w.Body.String() != data {
-		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
-	}
-}
-
-// TestRouteFilterExit tests route filters stopping the request.
-func TestRouteFilterExit(t *testing.T) {
-	data := "ROUTEFILTEREXIT"
-	//setup request
-	r := newRequest("GET", "/RouteFilter", nil)
-	w := httptest.NewRecorder()
-
-	c := New(&JSONEncoder{})
-
-	c.Get("/RouteFilter",
-
-		func(ctx *Context) {
-			v := ctx.GetData("PRE")
-			if v != data {
-				t.Errorf("expected %s got %s", data, v)
-			}
-			ctx.Response.Write([]byte("FOO"))
-		},
-
-		func(ctx *Context) bool {
-			ctx.Response.WriteHeader(http.StatusUnauthorized)
-			ctx.Response.Write([]byte(data))
-			return false
-		})
-
-	c.ServeHTTP(w, r)
-
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected status code to be %d instead got %d", http.StatusUnauthorized, w.Code)
 	}
 	if w.Body.String() != data {
 		t.Errorf("expected body to be %s instead got %s", data, w.Body.String())
@@ -234,10 +214,6 @@ func AssertRoute(path, verb string, c *Cobalt, t *testing.T) {
 	}
 }
 
-func TestPostFilters(t *testing.T) {
-
-}
-
 func TestNotFoundHandler(t *testing.T) {
 	//setup request
 	r := newRequest("GET", "/FOO", nil)
@@ -250,7 +226,7 @@ func TestNotFoundHandler(t *testing.T) {
 	}
 
 	c := New(&JSONEncoder{})
-	c.AddNotFoundHandler(nf)
+	c.NotFound(nf)
 
 	c.Get("/",
 		func(ctx *Context) {
@@ -284,7 +260,7 @@ func TestServerErrorHandler(t *testing.T) {
 	}
 
 	c := New(&JSONEncoder{})
-	c.AddServerErrHanlder(se)
+	c.ServerErr(se)
 
 	c.Get("/",
 		func(ctx *Context) {

@@ -1,14 +1,6 @@
 // Package cobalt represents a small web toolkit to allow the building of web applications.
-// It is primarily intended to be used for JSON based API. It has routing, pre-filters and post filters.
-//
-// Pre-filters are called after the router identifies the proper route and before the user code (handler) is called.
-// Pre-filters allow you to write to the response and end the request chain by returning a value of true from the filter handler.
-//
-// Route-Filters allow you to write a filter for a specific route. Pre-filters and route-filters return a boolean indicating whether to
-// continueing processing the request or to exit. So when a filter returns false the request will end. If a filter returns true it will continue
-// processing the request.
-//
-// Post filters allow you to specify a handler that gets called after the user code (handler) is run.
+// It is primarily intended to be used for api web services. It allows the use of different encoders
+// such as JSON, MsgPack, XML, etc..
 //
 // Context contains the http request and response writer. It also allows parameters to be added to the context as well. Context is passed to
 // all prefilters, route handler and post filters. Context contains helper methods to extract the route parameters from the request.
@@ -20,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"time"
 
 	"bitbucket.org/ardanlabs/cobalt/httprouter"
 )
@@ -36,8 +29,7 @@ type (
 	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
 		router      *httprouter.Router
-		prefilters  []FilterHandler
-		postfilters []Handler
+		global      []MiddleWare
 		serverError Handler
 		coder       Coder
 	}
@@ -45,8 +37,8 @@ type (
 	// Handler represents a request handler that is called by cobalt
 	Handler func(c *Context)
 
-	// FilterHandler is the handler that all pre and route filters implement
-	FilterHandler func(c *Context) bool
+	// MiddleWare is the type for middleware.
+	MiddleWare func(Handler) Handler
 )
 
 // New creates a new instance of cobalt.
@@ -59,23 +51,13 @@ func (c *Cobalt) Coder() Coder {
 	return c.coder
 }
 
-// AddPrefilter adds a prefilter hanlder to a dispatcher instance.
-func (c *Cobalt) AddPrefilter(h FilterHandler) {
-	c.prefilters = append(c.prefilters, h)
-}
-
-// AddPostfilter adds a post processing handler to a diaptcher instance.
-func (c *Cobalt) AddPostfilter(h Handler) {
-	c.postfilters = append(c.postfilters, h)
-}
-
-// AddServerErrHanlder add handler for server err.
-func (c *Cobalt) AddServerErrHanlder(h Handler) {
+// ServerErr sets the handler for a server err.
+func (c *Cobalt) ServerErr(h Handler) {
 	c.serverError = h
 }
 
-// AddNotFoundHandler adds a not found handler
-func (c *Cobalt) AddNotFoundHandler(h Handler) {
+// NotFound sets a not found handler.
+func (c *Cobalt) NotFound(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
 		ctx := NewContext(req, w, nil, c.coder)
 		h(ctx)
@@ -84,39 +66,85 @@ func (c *Cobalt) AddNotFoundHandler(h Handler) {
 	c.router.NotFound = http.HandlerFunc(t)
 }
 
+// Route adds a route with an asscoiated method, handler and route filters.. It Builds a function which is then passed to the router.
+func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
+
+	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
+		st := time.Now()
+		ctx := NewContext(req, w, p, c.coder)
+
+		// Handle panics
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("cobalt: Panic, Recovering\n")
+				buf := make([]byte, 10000)
+				runtime.Stack(buf, false)
+				log.Printf("%s\n", string(buf))
+				if c.serverError != nil {
+					c.serverError(ctx)
+					return
+				}
+			}
+
+			log.Printf("Request %s complete [%s] =>  %s %s - %s", ctx.ID, time.Since(st), req.Method, req.RequestURI, req.RemoteAddr)
+		}()
+
+		log.Printf("Request %s start =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
+
+		w.Header().Set("X-Request-Id", ctx.ID)
+
+		mwchain := func(h Handler) Handler {
+			// global middleware.
+			for idx := range c.global {
+				h = c.global[idx](h)
+			}
+
+			// route specific middleware
+			for idx := range m {
+				h = m[idx](h)
+			}
+			return h
+		}
+
+		// process request
+		mwchain(h)(ctx)
+	}
+
+	c.router.Handle(method, route, f)
+}
+
 // Get adds a route with an associated handler that matches a GET verb in a request.
-func (c *Cobalt) Get(route string, h Handler, f ...FilterHandler) {
-	c.addroute("GET", route, h, f)
+func (c *Cobalt) Get(route string, h Handler, m ...MiddleWare) {
+	c.route("GET", route, h, m)
 }
 
 // Post adds a route with an associated handler that matches a POST verb in a request.
-func (c *Cobalt) Post(route string, h Handler, f ...FilterHandler) {
-	c.addroute("POST", route, h, f)
+func (c *Cobalt) Post(route string, h Handler, m ...MiddleWare) {
+	c.route("POST", route, h, m)
 }
 
 // Put adds a route with an associated handler that matches a PUT verb in a request.
-func (c *Cobalt) Put(route string, h Handler, f ...FilterHandler) {
-	c.addroute("PUT", route, h, f)
+func (c *Cobalt) Put(route string, h Handler, m ...MiddleWare) {
+	c.route("PUT", route, h, m)
 }
 
 // Delete adds a route with an associated handler that matches a DELETE verb in a request.
-func (c *Cobalt) Delete(route string, h Handler, f ...FilterHandler) {
-	c.addroute("DELETE", route, h, f)
+func (c *Cobalt) Delete(route string, h Handler, m ...MiddleWare) {
+	c.route("DELETE", route, h, m)
 }
 
 // Options adds a route with an associated handler that matches a OPTIONS verb in a request.
-func (c *Cobalt) Options(route string, h Handler, f ...FilterHandler) {
-	c.addroute("OPTIONS", route, h, f)
+func (c *Cobalt) Options(route string, h Handler, m ...MiddleWare) {
+	c.route("OPTIONS", route, h, m)
 }
 
 // Head adds a route with an associated handler that matches a HEAD verb in a request.
-func (c *Cobalt) Head(route string, h Handler, f ...FilterHandler) {
-	c.addroute("HEAD", route, h, f)
+func (c *Cobalt) Head(route string, h Handler, m ...MiddleWare) {
+	c.route("HEAD", route, h, m)
 }
 
 // ServeHTTP implements the HandlerFunc that process the http request.
 func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// future use for middleware.
 	c.router.ServeHTTP(w, req)
 }
 
@@ -127,60 +155,9 @@ func (c *Cobalt) Run(addr string) {
 	log.SetPrefix("[cobalt] ")
 	log.Printf("starting, listening on %s", addr)
 
+	// TODO: add support for SSL/TLS
 	err := http.ListenAndServe(addr, c)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-}
-
-// addRoute adds a route with an asscoiated method, handler and route filters.. It Builds a function which is then passed to the router.
-func (c *Cobalt) addroute(method, route string, h Handler, filters []FilterHandler) {
-
-	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-		ctx := NewContext(req, w, p, c.coder)
-
-		// Handle panics
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("cobalt: Panic Error => %v\n", r)
-				log.Printf("cobalt: Panic, Recovering\n")
-				buf := make([]byte, 10000)
-				runtime.Stack(buf, false)
-				log.Printf("%s\n", string(buf))
-				if c.serverError != nil {
-					log.Printf("cobalt: Panic, Recovering")
-					c.serverError(ctx)
-					return
-				}
-			}
-			log.Printf("%s REQUEST END => %d %s %s - %s\n", ctx.ID, ctx.Status, req.Method, req.RequestURI, req.RemoteAddr)
-		}()
-
-		log.Printf("%s REQUEST START =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
-		w.Header().Set("X-Request-Id", ctx.ID)
-		// global filters.
-		for _, pf := range c.prefilters {
-			if ok := pf(ctx); !ok {
-				return
-			}
-		}
-
-		// route specific filters.
-		for _, f := range filters {
-			ok := f(ctx)
-			if !ok {
-				return
-			}
-		}
-
-		// call route handler
-		h(ctx)
-
-		// handle any post handler filters
-		for _, f := range c.postfilters {
-			f(ctx)
-		}
-	}
-
-	c.router.Handle(method, route, f)
 }

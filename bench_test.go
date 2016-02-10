@@ -50,15 +50,19 @@ func BenchmarkContextRequest(b *testing.B) {
 	path := "/Hello/:name/World"
 	c := New(&JSONEncoder{})
 
-	c.AddPrefilter(func(c *Context) bool {
-		c.SetData("DATA", data)
-		return false
-	})
+	mw := func(h Handler) Handler {
+		return func(c *Context) {
+			c.SetData("DATA", data)
+			h(c)
+		}
+	}
 
-	c.Get(path, func(ctx *Context) {
+	h := func(ctx *Context) {
 		v := ctx.GetData("DATA").(string)
 		ctx.Response.Write([]byte(v))
-	}, nil)
+	}
+
+	c.Get(path, h, mw)
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
