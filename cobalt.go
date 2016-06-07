@@ -143,6 +143,13 @@ func (c *Cobalt) Head(route string, h Handler, m ...MiddleWare) {
 	c.route("HEAD", route, h, m)
 }
 
+// ServeFiles serves files from the given file system root.
+// The path must end with "/*filepath", files are then served from the local
+// path /defined/root/dir/*filepath.
+func (c *Cobalt) ServeFiles(path string, root http.FileSystem) {
+	c.router.ServeFiles(path, root)
+}
+
 // ServeHTTP implements the HandlerFunc that process the http request.
 func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c.router.ServeHTTP(w, req)
