@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"bitbucket.org/ardanlabs/cobalt/httprouter"
-	"bitbucket.org/ardanlabs/cobalt/uuid"
+	"github.com/ardanlabs/cobalt/httprouter"
+	"github.com/ardanlabs/cobalt/uuid"
 )
 
 const (
