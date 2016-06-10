@@ -77,6 +77,7 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Printf("cobalt: Panic, Recovering\n")
+				log.Println(r)
 				buf := make([]byte, 10000)
 				runtime.Stack(buf, false)
 				log.Printf("%s\n", string(buf))
