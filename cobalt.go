@@ -83,7 +83,9 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 				log.Printf("%s\n", string(buf))
 				if c.serverError != nil {
 					c.serverError(ctx)
-					return
+				}
+				if c.serverError == nil {
+					w.WriteHeader(http.StatusInternalServerError)
 				}
 			}
 
