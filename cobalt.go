@@ -2,11 +2,12 @@
 // It is primarily intended to be used for api web services. It allows the use of different encoders
 // such as JSON, MsgPack, XML, etc..
 //
-// Context contains the http request and response writer. It also allows parameters to be added to the context as well. Context is passed to
-// all prefilters, route handler and post filters. Context contains helper methods to extract the route parameters from the request.
+// Response contains the http request and response writer. Request contains helper methods to extract
+// the route parameters from the request and serve responses.
 package cobalt
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -29,21 +30,24 @@ type (
 	// Cobalt is the main data structure that holds all the filters, pointer to routes
 	Cobalt struct {
 		router      *httprouter.Router
-		global      []MiddleWare
 		serverError Handler
 		coder       Coder
+		// request timeout in milliseconds.
+		timeout int
 	}
 
 	// Handler represents a request handler that is called by cobalt
-	Handler func(c *Context)
+	Handler func(c context.Context)
 
 	// MiddleWare is the type for middleware.
 	MiddleWare func(Handler) Handler
 )
 
+const timeout = 10000 //default timeout set to 10 seconds.
+
 // New creates a new instance of cobalt.
 func New(coder Coder) *Cobalt {
-	return &Cobalt{router: httprouter.New(), coder: coder}
+	return &Cobalt{router: httprouter.New(), coder: coder, timeout: 10000}
 }
 
 // Coder returns the Coder configured in Cobalt
@@ -59,7 +63,8 @@ func (c *Cobalt) ServerErr(h Handler) {
 // NotFound sets a not found handler.
 func (c *Cobalt) NotFound(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
-		ctx := NewContext(req, w, nil, c.coder)
+		r := NewRequest(req, w, nil, c.coder)
+		ctx := ContextWith(context.Background(), r)
 		h(ctx)
 	}
 
@@ -71,16 +76,24 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 		st := time.Now()
-		ctx := NewContext(req, w, p, c.coder)
+		request := NewRequest(req, w, p, c.coder)
 
-		// Handle panics
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+		// Handle panics, if server error handler is specified it will be called.
+		// Otherwise, a generic 500 error will be sent. While the http package will
+		// capture the panic, we capture it so we can serve the specified 500 error
+		// that is configured for cobalt.
 		defer func() {
+			cancel()
 			if r := recover(); r != nil {
 				log.Printf("cobalt: Panic, Recovering\n")
 				log.Println(r)
 				buf := make([]byte, 10000)
 				runtime.Stack(buf, false)
 				log.Printf("%s\n", string(buf))
+				request.Status = 500
+
 				if c.serverError != nil {
 					c.serverError(ctx)
 				}
@@ -89,27 +102,21 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 				}
 			}
 
-			log.Printf("Request %s complete [%s] =>  %s %s - %s", ctx.ID, time.Since(st), req.Method, req.RequestURI, req.RemoteAddr)
+			log.Printf("Request %s complete [%s] status [%d] =>  %s %s - %s", request.ID, time.Since(st), request.Status, req.Method, req.RequestURI, req.RemoteAddr)
 		}()
 
-		log.Printf("Request %s start =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
+		log.Printf("Request %s start =>  %s %s - %s", request.ID, method, req.RequestURI, req.RemoteAddr)
 
-		w.Header().Set("X-Request-Id", ctx.ID)
+		w.Header().Set("X-Request-Id", request.ID)
 
 		mwchain := func(h Handler) Handler {
-			// global middleware.
-			for idx := range c.global {
-				h = c.global[idx](h)
-			}
-
-			// route specific middleware
+			// route middleware
 			for idx := range m {
 				h = m[idx](h)
 			}
 			return h
 		}
 
-		// process request
 		mwchain(h)(ctx)
 	}
 
