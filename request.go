@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ardanlabs/cobalt/httprouter"
-	"github.com/ardanlabs/cobalt/uuid"
+	"github.com/julienschmidt/httprouter"
+	"github.com/pborman/uuid"
 )
 
 const (
@@ -46,10 +46,8 @@ func ContextWith(c context.Context, r *Request) context.Context {
 
 // NewRequest creates a new Request instance with a http.Request and http.ResponseWriter.
 func NewRequest(req *http.Request, resp http.ResponseWriter, p httprouter.Params, coder Coder) *Request {
-	id, _ := uuid.NewV4()
-
 	return &Request{
-		ID:          id.String(),
+		ID:          uuid.New(),
 		Request:     req,
 		Response:    resp,
 		routevalues: p,

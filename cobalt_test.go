@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-
-	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 var r = map[int][]string{
@@ -255,18 +253,4 @@ func (enc JSONEncoder) Decode(r io.Reader, val interface{}) error {
 
 func (enc JSONEncoder) ContentType() string {
 	return "application/json;charset=UTF-8"
-}
-
-type MPackEncoder struct{}
-
-func (enc MPackEncoder) Encode(w io.Writer, val interface{}) error {
-	return msgpack.NewEncoder(w).Encode(val)
-}
-
-func (enc MPackEncoder) Decode(r io.Reader, val interface{}) error {
-	return msgpack.NewDecoder(r).Decode(val)
-}
-
-func (enc MPackEncoder) ContentType() string {
-	return "application/x-msgpack"
 }
