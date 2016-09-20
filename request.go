@@ -33,17 +33,6 @@ type (
 
 var key = "request"
 
-// FromContext retrieves a Request Context from context.Context
-func FromContext(c context.Context) (*Request, bool) {
-	request, ok := c.Value(key).(*Request)
-	return request, ok
-}
-
-// ContextWith returns a new context with a request value.
-func ContextWith(c context.Context, r *Request) context.Context {
-	return context.WithValue(c, key, r)
-}
-
 // NewRequest creates a new Request instance with a http.Request and http.ResponseWriter.
 func NewRequest(req *http.Request, resp http.ResponseWriter, p httprouter.Params, coder Coder) *Request {
 	return &Request{
@@ -53,6 +42,16 @@ func NewRequest(req *http.Request, resp http.ResponseWriter, p httprouter.Params
 		routevalues: p,
 		coder:       coder,
 	}
+}
+
+// Context is a helper method to return the context within the
+// http request. If http request is nil a non-nil empty context is
+// returned, essentially context.Background().
+func (r *Request) Context() context.Context {
+	if r.Request == nil {
+		return context.Background()
+	}
+	return r.Request.Context()
 }
 
 // RouteValue returns the value for the associated key from the url parameters.

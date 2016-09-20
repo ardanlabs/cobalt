@@ -37,7 +37,7 @@ type (
 	}
 
 	// Handler represents a request handler that is called by cobalt
-	Handler func(c context.Context)
+	Handler func(r *Request)
 
 	// MiddleWare is the type for middleware.
 	MiddleWare func(Handler) Handler
@@ -64,8 +64,7 @@ func (c *Cobalt) ServerErr(h Handler) {
 func (c *Cobalt) NotFound(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
 		r := NewRequest(req, w, nil, c.coder)
-		ctx := ContextWith(context.Background(), r)
-		h(ctx)
+		h(r)
 	}
 
 	c.router.NotFound = http.HandlerFunc(t)
@@ -76,9 +75,10 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 		st := time.Now()
-		request := NewRequest(req, w, p, c.coder)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(req.Context(), 10*time.Second)
+		req = req.WithContext(ctx)
+		request := NewRequest(req, w, p, c.coder)
 
 		// Handle panics, if server error handler is specified it will be called.
 		// Otherwise, a generic 500 error will be sent. While the http package will
@@ -95,7 +95,7 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 				request.Status = 500
 
 				if c.serverError != nil {
-					c.serverError(ctx)
+					c.serverError(request)
 				}
 				if c.serverError == nil {
 					w.WriteHeader(http.StatusInternalServerError)
@@ -117,7 +117,7 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 			return h
 		}
 
-		mwchain(h)(ctx)
+		mwchain(h)(request)
 	}
 
 	c.router.Handle(method, route, f)
