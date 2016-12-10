@@ -1,4 +1,4 @@
-package cobalt
+package cobalt_test
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/vmihailenco/msgpack.v2"
+	"github.com/ardanlabs/cobalt"
 )
 
 var r = map[int][]string{
@@ -38,7 +38,7 @@ func TestRequest(t *testing.T) {
 	const value = "DATA"
 	const code = 200
 
-	mw := func(h Handler) Handler {
+	mw := func(h cobalt.Handler) cobalt.Handler {
 		return func(ctx *Context) {
 			ctx.SetData(key, value)
 			fmt.Println("Middleware Fired")
@@ -54,7 +54,7 @@ func TestRequest(t *testing.T) {
 		}
 		ctx.Response.Write([]byte(value))
 	}
-	c := New(&JSONEncoder{})
+	c := New(&cobalt.JSONEncoder{})
 	c.Get("/", h, mw)
 
 	c.ServeHTTP(w, r)
@@ -75,9 +75,9 @@ func TestMidwareExit(t *testing.T) {
 	const key = "KEY"
 	const value = "DATA"
 	const code = 400
-	c := New(&JSONEncoder{})
+	c := New(&cobalt.JSONEncoder{})
 
-	mw := func(h Handler) Handler {
+	mw := func(h cobalt.Handler) cobalt.Handler {
 		return func(ctx *Context) {
 			fmt.Println("Middleware")
 			ctx.Response.WriteHeader(http.StatusBadRequest)
@@ -85,7 +85,7 @@ func TestMidwareExit(t *testing.T) {
 		}
 	}
 
-	h := func(ctx *Context) {
+	h := func(ctx *cobalt.Context) {
 		fmt.Println("Route Fired")
 		v := ctx.GetData(key)
 		if v != value {
@@ -107,7 +107,7 @@ func TestMidwareExit(t *testing.T) {
 
 // TestRoutes tests the routing of requests.
 func TestRoutes(t *testing.T) {
-	c := New(&JSONEncoder{})
+	c := New(&cobalt.JSONEncoder{})
 
 	// GET
 	c.Get("/", func(ctx *Context) {
@@ -163,7 +163,7 @@ func TestRoutes(t *testing.T) {
 }
 
 // AsserRoute is a helper method to tests routes
-func AssertRoute(path, verb string, c *Cobalt, t *testing.T) {
+func AssertRoute(path, verb string, c *cobalt.Cobalt, t *testing.T) {
 	r := newRequest(strings.ToUpper(verb), path, nil)
 	w := httptest.NewRecorder()
 
@@ -255,18 +255,4 @@ func (enc JSONEncoder) Decode(r io.Reader, val interface{}) error {
 
 func (enc JSONEncoder) ContentType() string {
 	return "application/json;charset=UTF-8"
-}
-
-type MPackEncoder struct{}
-
-func (enc MPackEncoder) Encode(w io.Writer, val interface{}) error {
-	return msgpack.NewEncoder(w).Encode(val)
-}
-
-func (enc MPackEncoder) Decode(r io.Reader, val interface{}) error {
-	return msgpack.NewDecoder(r).Decode(val)
-}
-
-func (enc MPackEncoder) ContentType() string {
-	return "application/x-msgpack"
 }

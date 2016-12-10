@@ -48,7 +48,7 @@ var data = `[
 
 func BenchmarkContextRequest(b *testing.B) {
 	path := "/Hello/:name/World"
-	c := New(&JSONEncoder{})
+	c := New(&cobalt.JSONEncoder{})
 
 	mw := func(h Handler) Handler {
 		return func(c *Context) {

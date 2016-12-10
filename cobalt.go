@@ -14,7 +14,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ardanlabs/cobalt/httprouter"
+	"github.com/julienschmidt/httprouter"
 )
 
 type (
