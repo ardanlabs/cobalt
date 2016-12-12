@@ -1,8 +1,10 @@
-package cobalt
+package cobalt_test
 
 import (
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ardanlabs/cobalt"
 )
 
 var data = `[
@@ -48,16 +50,16 @@ var data = `[
 
 func BenchmarkContextRequest(b *testing.B) {
 	path := "/Hello/:name/World"
-	c := New(&cobalt.JSONEncoder{})
+	c := cobalt.New(&JSONEncoder{})
 
-	mw := func(h Handler) Handler {
-		return func(c *Context) {
+	mw := func(h cobalt.Handler) cobalt.Handler {
+		return func(c *cobalt.Context) {
 			c.SetData("DATA", data)
 			h(c)
 		}
 	}
 
-	h := func(ctx *Context) {
+	h := func(ctx *cobalt.Context) {
 		v := ctx.GetData("DATA").(string)
 		ctx.Response.Write([]byte(v))
 	}
@@ -67,7 +69,7 @@ func BenchmarkContextRequest(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
-		r := newRequest("GET", path, nil)
+		r := NewRequest("GET", path, nil)
 		w := httptest.NewRecorder()
 		b.StartTimer()
 		c.ServeHTTP(w, r)

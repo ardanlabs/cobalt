@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/ardanlabs/cobalt"
 )
 
 type (
@@ -20,7 +22,7 @@ type (
 
 func Test_ContextServeJSON(t *testing.T) {
 	//setup request
-	r := newRequest("GET", "/", nil)
+	r := NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 
 	const d = "Jan 5, 2015"
@@ -39,9 +41,9 @@ func Test_ContextServeJSON(t *testing.T) {
 		Is:     is,
 	}
 
-	c := New(JSONEncoder{})
+	c := cobalt.New(JSONEncoder{})
 
-	c.Get("/", func(c *Context) {
+	c.Get("/", func(c *cobalt.Context) {
 		c.Serve(&t1)
 	})
 
