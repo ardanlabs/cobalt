@@ -14,7 +14,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ardanlabs/cobalt/httprouter"
+	"github.com/julienschmidt/httprouter"
 )
 
 type (
@@ -165,9 +165,15 @@ func (c *Cobalt) Run(addr string) {
 	log.SetPrefix("[cobalt] ")
 	log.Printf("starting, listening on %s", addr)
 
+	srv := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Addr:         addr,
+		Handler:      c,
+	}
+
 	// TODO: add support for SSL/TLS
-	err := http.ListenAndServe(addr, c)
-	if err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf(err.Error())
 	}
 }

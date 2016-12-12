@@ -1,0 +1,19 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "Y3U6on66N0BszKXYvb2Q+qpG6f4=",
+			"path": "github.com/julienschmidt/httprouter",
+			"revision": "5dd70ee059943e81987a817fa1a755b11dd119c1",
+			"revisionTime": "2016-12-03T08:33:52Z"
+		},
+		{
+			"checksumSHA1": "N5RwWgt0CCgyVin0kYbipyoy6O8=",
+			"path": "github.com/pborman/uuid",
+			"revision": "5007efa264d92316c43112bc573e754bc889b7b1",
+			"revisionTime": "2016-12-06T18:47:45Z"
+		}
+	],
+	"rootPath": "github.com/ardanlabs/cobalt"
+}

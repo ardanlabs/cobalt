@@ -1,4 +1,4 @@
-package cobalt
+package cobalt_test
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/vmihailenco/msgpack.v2"
+	"github.com/ardanlabs/cobalt"
 )
 
 var r = map[int][]string{
@@ -21,7 +21,7 @@ var r = map[int][]string{
 	5: []string{"/", "Put"},
 	6: []string{"/foo", "Put"}}
 
-func newRequest(method, path string, body io.Reader) *http.Request {
+func NewRequest(method, path string, body io.Reader) *http.Request {
 	r, _ := http.NewRequest(method, path, body)
 	u, _ := url.Parse(path)
 	r.URL = u
@@ -31,22 +31,22 @@ func newRequest(method, path string, body io.Reader) *http.Request {
 
 // TestReqeust tests
 func TestRequest(t *testing.T) {
-	r := newRequest("GET", "/", nil)
+	r := NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 
 	const key = "KEY"
 	const value = "DATA"
 	const code = 200
 
-	mw := func(h Handler) Handler {
-		return func(ctx *Context) {
+	mw := func(h cobalt.Handler) cobalt.Handler {
+		return func(ctx *cobalt.Context) {
 			ctx.SetData(key, value)
 			fmt.Println("Middleware Fired")
 			h(ctx)
 		}
 	}
 
-	h := func(ctx *Context) {
+	h := func(ctx *cobalt.Context) {
 		fmt.Println("Route Fired")
 		v := ctx.GetData(key)
 		if v != value {
@@ -54,7 +54,7 @@ func TestRequest(t *testing.T) {
 		}
 		ctx.Response.Write([]byte(value))
 	}
-	c := New(&JSONEncoder{})
+	c := cobalt.New(&JSONEncoder{})
 	c.Get("/", h, mw)
 
 	c.ServeHTTP(w, r)
@@ -69,23 +69,23 @@ func TestRequest(t *testing.T) {
 
 // TestMidwareExit tests a middleware exiting.
 func TestMidwareExit(t *testing.T) {
-	r := newRequest("GET", "/", nil)
+	r := NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 
 	const key = "KEY"
 	const value = "DATA"
 	const code = 400
-	c := New(&JSONEncoder{})
+	c := cobalt.New(&JSONEncoder{})
 
-	mw := func(h Handler) Handler {
-		return func(ctx *Context) {
+	mw := func(h cobalt.Handler) cobalt.Handler {
+		return func(ctx *cobalt.Context) {
 			fmt.Println("Middleware")
 			ctx.Response.WriteHeader(http.StatusBadRequest)
 			ctx.Response.Write([]byte(value))
 		}
 	}
 
-	h := func(ctx *Context) {
+	h := func(ctx *cobalt.Context) {
 		fmt.Println("Route Fired")
 		v := ctx.GetData(key)
 		if v != value {
@@ -107,53 +107,53 @@ func TestMidwareExit(t *testing.T) {
 
 // TestRoutes tests the routing of requests.
 func TestRoutes(t *testing.T) {
-	c := New(&JSONEncoder{})
+	c := cobalt.New(&JSONEncoder{})
 
 	// GET
-	c.Get("/", func(ctx *Context) {
+	c.Get("/", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Get/"))
 	})
-	c.Get("/foo", func(ctx *Context) {
+	c.Get("/foo", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Get/foo"))
 	})
 
 	// POST
-	c.Post("/", func(ctx *Context) {
+	c.Post("/", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Post/"))
 	})
-	c.Post("/foo", func(ctx *Context) {
+	c.Post("/foo", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Post/foo"))
 	})
 
 	// PUT
-	c.Put("/", func(ctx *Context) {
+	c.Put("/", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Put/"))
 	})
-	c.Put("/foo", func(ctx *Context) {
+	c.Put("/foo", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Put/foo"))
 	})
 
 	// Delete
-	c.Delete("/", func(ctx *Context) {
+	c.Delete("/", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Delete/"))
 	})
-	c.Delete("/foo", func(ctx *Context) {
+	c.Delete("/foo", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Delete/foo"))
 	})
 
 	// OPTIONS
-	c.Options("/", func(ctx *Context) {
+	c.Options("/", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Options/"))
 	})
-	c.Options("/foo", func(ctx *Context) {
+	c.Options("/foo", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Options/foo"))
 	})
 
 	// HEAD
-	c.Head("/", func(ctx *Context) {
+	c.Head("/", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Head/"))
 	})
-	c.Head("/foo", func(ctx *Context) {
+	c.Head("/foo", func(ctx *cobalt.Context) {
 		ctx.Response.Write([]byte("Head/foo"))
 	})
 
@@ -163,8 +163,8 @@ func TestRoutes(t *testing.T) {
 }
 
 // AsserRoute is a helper method to tests routes
-func AssertRoute(path, verb string, c *Cobalt, t *testing.T) {
-	r := newRequest(strings.ToUpper(verb), path, nil)
+func AssertRoute(path, verb string, c *cobalt.Cobalt, t *testing.T) {
+	r := NewRequest(strings.ToUpper(verb), path, nil)
 	w := httptest.NewRecorder()
 
 	c.ServeHTTP(w, r)
@@ -176,20 +176,20 @@ func AssertRoute(path, verb string, c *Cobalt, t *testing.T) {
 // TestNotFoundHandler tests handler for 404.
 func TestNotFoundHandler(t *testing.T) {
 	//setup request
-	r := newRequest("GET", "/FOO", nil)
+	r := NewRequest("GET", "/FOO", nil)
 	w := httptest.NewRecorder()
 
 	m := struct{ Message string }{"Not Found"}
 
-	nf := func(c *Context) {
+	nf := func(c *cobalt.Context) {
 		c.ServeWithStatus(m, http.StatusNotFound)
 	}
 
-	c := New(&JSONEncoder{})
+	c := cobalt.New(&JSONEncoder{})
 	c.NotFound(nf)
 
 	c.Get("/",
-		func(ctx *Context) {
+		func(ctx *cobalt.Context) {
 			panic("Panic Test")
 		},
 		nil)
@@ -211,20 +211,20 @@ func TestNotFoundHandler(t *testing.T) {
 // TestServerErrorHandler tests handler for 500.
 func TestServerErrorHandler(t *testing.T) {
 	//setup request
-	r := newRequest("GET", "/", nil)
+	r := NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 
 	m := struct{ Message string }{"Internal Error"}
 
-	se := func(c *Context) {
+	se := func(c *cobalt.Context) {
 		c.ServeWithStatus(m, http.StatusInternalServerError)
 	}
 
-	c := New(&JSONEncoder{})
+	c := cobalt.New(&JSONEncoder{})
 	c.ServerErr(se)
 
 	c.Get("/",
-		func(ctx *Context) {
+		func(ctx *cobalt.Context) {
 			panic("Panic Test")
 		},
 		nil)
@@ -255,18 +255,4 @@ func (enc JSONEncoder) Decode(r io.Reader, val interface{}) error {
 
 func (enc JSONEncoder) ContentType() string {
 	return "application/json;charset=UTF-8"
-}
-
-type MPackEncoder struct{}
-
-func (enc MPackEncoder) Encode(w io.Writer, val interface{}) error {
-	return msgpack.NewEncoder(w).Encode(val)
-}
-
-func (enc MPackEncoder) Decode(r io.Reader, val interface{}) error {
-	return msgpack.NewDecoder(r).Decode(val)
-}
-
-func (enc MPackEncoder) ContentType() string {
-	return "application/x-msgpack"
 }
