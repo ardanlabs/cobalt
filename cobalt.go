@@ -177,3 +177,23 @@ func (c *Cobalt) Run(addr string) {
 		log.Fatalf(err.Error())
 	}
 }
+
+// RunTLS runs the dispatcher with a TLS cert.
+func (c *Cobalt) RunTLS(addr, certfile, keyfile string) {
+	log.SetOutput(os.Stdout)
+	log.SetFlags(0)
+	log.SetPrefix("[cobalt] ")
+	log.Printf("starting, listening on %s", addr)
+
+	srv := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Addr:         addr,
+		Handler:      c,
+	}
+
+	// TODO: add support for SSL/TLS
+	if err := srv.ListenAndServeTLS(certfile, keyfile); err != nil {
+		log.Fatalf(err.Error())
+	}
+}
