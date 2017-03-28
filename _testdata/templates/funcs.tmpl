@@ -1,0 +1,4 @@
+{{/* Uppercase our input, split the letters out, then join them together with hyphens */}}
+{{ define "body" }}
+    {{- . | upper | split | join }}
+{{ end }}

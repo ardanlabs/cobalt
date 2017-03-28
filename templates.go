@@ -12,6 +12,7 @@ type Templates struct {
 	Extension   string // The file extension on templates.
 	Layout      string // The name of the base template that holds
 	Development bool   // Set to true to enable recompilation on each request
+	Funcs       template.FuncMap
 
 	cache map[string]*template.Template
 }
@@ -23,6 +24,7 @@ func DefaultTemplates() Templates {
 		Extension:   ".tmpl",
 		Layout:      "_layout",
 		Development: false,
+		Funcs:       make(template.FuncMap),
 		cache:       make(map[string]*template.Template),
 	}
 }
@@ -34,7 +36,7 @@ func (t Templates) lookup(name string) (*template.Template, error) {
 		}
 	}
 
-	l, err := template.New(t.Layout + t.Extension).ParseFiles(filepath.Join(t.Directory, t.Layout+t.Extension))
+	l, err := template.New(t.Layout + t.Extension).Funcs(t.Funcs).ParseFiles(filepath.Join(t.Directory, t.Layout+t.Extension))
 	if err != nil {
 		return nil, err
 	}
