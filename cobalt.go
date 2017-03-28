@@ -32,6 +32,8 @@ type (
 		global      []MiddleWare
 		serverError Handler
 		coder       Coder
+
+		Templates Templates
 	}
 
 	// Handler represents a request handler that is called by cobalt
@@ -43,7 +45,7 @@ type (
 
 // New creates a new instance of cobalt.
 func New(coder Coder) *Cobalt {
-	return &Cobalt{router: httprouter.New(), coder: coder}
+	return &Cobalt{router: httprouter.New(), coder: coder, Templates: DefaultTemplates()}
 }
 
 // Coder returns the Coder configured in Cobalt
@@ -59,7 +61,7 @@ func (c *Cobalt) ServerErr(h Handler) {
 // NotFound sets a not found handler.
 func (c *Cobalt) NotFound(h Handler) {
 	t := func(w http.ResponseWriter, req *http.Request) {
-		ctx := NewContext(req, w, nil, c.coder)
+		ctx := NewContext(req, w, nil, c.coder, c.Templates)
 		h(ctx)
 	}
 
@@ -71,7 +73,7 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 		st := time.Now()
-		ctx := NewContext(req, w, p, c.coder)
+		ctx := NewContext(req, w, p, c.coder, c.Templates)
 
 		// Handle panics
 		defer func() {

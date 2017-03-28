@@ -1,8 +1,10 @@
 package cobalt
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -27,20 +29,22 @@ type (
 		// data that can be stored in the context for life of request
 		data map[string]interface{}
 		// params are the request parameters from the http request
-		params httprouter.Params
-		coder  Coder
+		params    httprouter.Params
+		coder     Coder
+		templates Templates
 	}
 )
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
-func NewContext(req *http.Request, resp http.ResponseWriter, p httprouter.Params, coder Coder) *Context {
+func NewContext(req *http.Request, resp http.ResponseWriter, p httprouter.Params, coder Coder, templates Templates) *Context {
 	return &Context{
-		ID:       uuid.New(),
-		Request:  req,
-		Response: resp,
-		data:     make(map[string]interface{}),
-		params:   p,
-		coder:    coder,
+		ID:        uuid.New(),
+		Request:   req,
+		Response:  resp,
+		data:      make(map[string]interface{}),
+		params:    p,
+		coder:     coder,
+		templates: templates,
 	}
 }
 
@@ -129,6 +133,8 @@ func (c *Context) serveEncoded(val interface{}, status int, seconds int) {
 // ServeResponse serves a response with the status and content type sent
 func (c *Context) ServeResponse(resp []byte, status int, contentType string) {
 
+	c.Status = status
+
 	if contentType != "" {
 		c.Response.Header().Set("Content-Type", contentType)
 	}
@@ -137,4 +143,18 @@ func (c *Context) ServeResponse(resp []byte, status int, contentType string) {
 	}
 	c.Response.WriteHeader(status)
 	c.Response.Write(resp)
+}
+
+// ServeHTML executes a template identified by page using the provided data and
+// serves it to the user as HTML.
+func (c *Context) ServeHTML(page string, data interface{}) {
+	var buf bytes.Buffer
+
+	if err := c.templates.Execute(&buf, page, data); err != nil {
+		log.Printf("%s error in template: %v", c.ID, err)
+		c.ServeResponse([]byte("Error in template"), http.StatusInternalServerError, "text/plain")
+		return
+	}
+
+	c.ServeResponse(buf.Bytes(), http.StatusOK, "text/html")
 }

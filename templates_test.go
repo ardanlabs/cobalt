@@ -1,4 +1,4 @@
-package cobalt
+package cobalt_test
 
 import (
 	"bytes"
