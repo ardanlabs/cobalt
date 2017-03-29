@@ -83,6 +83,12 @@ func (c *Context) DecodeBody(val interface{}) error {
 	return c.coder.Decode(c.Request.Body, val)
 }
 
+// Redirect is a helper to redirect the user to a new url
+func (c *Context) Redirect(url string, status int) {
+	http.Redirect(c.Response, c.Request, url, status)
+	c.Status = status
+}
+
 // Serve is a helper method to return encoded msg based on type from a struct type.
 func (c *Context) Serve(val interface{}) {
 	c.serveEncoded(val, http.StatusOK, 0)
