@@ -1,9 +1,3 @@
-// Package cobalt represents a small web toolkit to allow the building of web applications.
-// It is primarily intended to be used for api web services. It allows the use of different encoders
-// such as JSON, MsgPack, XML, etc..
-//
-// Context contains the http request and response writer. It also allows parameters to be added to the context as well. Context is passed to
-// all prefilters, route handler and post filters. Context contains helper methods to extract the route parameters from the request.
 package cobalt
 
 import (
@@ -19,20 +13,21 @@ import (
 
 type (
 	// Coder is the interface used for the encoder in Cobalt. It allows the use
-	// of multiple Encoders within cobalt
+	// of multiple Encoders within cobalt.
 	Coder interface {
 		Encode(w io.Writer, v interface{}) error
 		Decode(r io.Reader, v interface{}) error
 		ContentType() string
 	}
 
-	// Cobalt is the main data structure that holds all the filters, pointer to routes
+	// Cobalt is the main data structure that holds all of the middleware and handlers.
 	Cobalt struct {
 		router      *httprouter.Router
 		global      []MiddleWare
 		serverError Handler
 		coder       Coder
 
+		// Templates is the configuration for HTML templates served by cobalt.
 		Templates Templates
 	}
 
@@ -68,7 +63,8 @@ func (c *Cobalt) NotFound(h Handler) {
 	c.router.NotFound = http.HandlerFunc(t)
 }
 
-// Route adds a route with an asscoiated method, handler and route filters.. It Builds a function which is then passed to the router.
+// route adds a handler with middleware for a route and method. It builds a
+// function which is then passed to the router.
 func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 
 	f := func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
@@ -149,13 +145,17 @@ func (c *Cobalt) Head(route string, h Handler, m ...MiddleWare) {
 }
 
 // ServeFiles serves files from the given file system root.
-// The path must end with "/*filepath", files are then served from the local
-// path /defined/root/dir/*filepath.
+// The path must end with "/*filepath", files are then served from the
+// filesystem
+//
+// Example
+//
+//	c.ServeFiles("public/*filepath", http.Dir("public"))
 func (c *Cobalt) ServeFiles(path string, root http.FileSystem) {
 	c.router.ServeFiles(path, root)
 }
 
-// ServeHTTP implements the HandlerFunc that process the http request.
+// ServeHTTP implements http.Handler.
 func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c.router.ServeHTTP(w, req)
 }
@@ -174,7 +174,6 @@ func (c *Cobalt) Run(addr string) {
 		Handler:      c,
 	}
 
-	// TODO: add support for SSL/TLS
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -194,7 +193,6 @@ func (c *Cobalt) RunTLS(addr, certfile, keyfile string) {
 		Handler:      c,
 	}
 
-	// TODO: add support for SSL/TLS
 	if err := srv.ListenAndServeTLS(certfile, keyfile); err != nil {
 		log.Fatalf(err.Error())
 	}
