@@ -25,6 +25,23 @@ func Test_TemplateHelloWorld(t *testing.T) {
 	}
 }
 
+func Test_TemplateSolo(t *testing.T) {
+	tmp := cobalt.DefaultTemplates()
+	tmp.Directory = "_testdata/templates"
+
+	var buf bytes.Buffer
+
+	if err := tmp.ExecuteOnly(&buf, "solo", "data"); err != nil {
+		t.Fatalf("Error should be nil, was %v", err)
+	}
+
+	want := "Solo template: data"
+	if got := strings.TrimSpace(buf.String()); got != want {
+		t.Errorf("Got:  %s", got)
+		t.Errorf("Want: %s", want)
+	}
+}
+
 func Test_TemplateFuncs(t *testing.T) {
 	tmp := cobalt.DefaultTemplates()
 	tmp.Directory = "_testdata/templates"
