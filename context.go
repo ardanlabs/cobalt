@@ -164,3 +164,16 @@ func (c *Context) ServeHTML(page string, data interface{}) {
 
 	c.ServeResponse(buf.Bytes(), http.StatusOK, "text/html")
 }
+
+// ServeHTMLNoLayout serves an HTML template but bypasses the template layout file.
+func (c *Context) ServeHTMLNoLayout(page string, data interface{}) {
+	var buf bytes.Buffer
+
+	if err := c.templates.ExecuteOnly(&buf, page, data); err != nil {
+		log.Printf("%s error in template: %v", c.ID, err)
+		c.ServeResponse([]byte("Error in template"), http.StatusInternalServerError, "text/plain")
+		return
+	}
+
+	c.ServeResponse(buf.Bytes(), http.StatusOK, "text/html")
+}

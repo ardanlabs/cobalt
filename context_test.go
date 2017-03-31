@@ -108,3 +108,31 @@ func Test_ContextServeHTML(t *testing.T) {
 		t.Errorf("Want: %s", want)
 	}
 }
+
+func Test_ContextServeHTMLNoLayout(t *testing.T) {
+	r := NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	c := cobalt.New(JSONEncoder{})
+	c.Templates.Directory = "_testdata/templates"
+
+	c.Get("/", func(c *cobalt.Context) {
+		c.ServeHTMLNoLayout("solo", "data")
+	})
+
+	c.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status code to be %d instead got %d", http.StatusOK, w.Code)
+	}
+
+	if contentType := w.Header().Get("Content-Type"); contentType == "" {
+		t.Fatalf("expected content type to not be empty")
+	}
+
+	want := "Solo template: data"
+	if got := strings.TrimSpace(w.Body.String()); got != want {
+		t.Errorf("Got:  %s", got)
+		t.Errorf("Want: %s", want)
+	}
+}
