@@ -53,7 +53,8 @@ func (t Templates) lookup(layout, name string) (*template.Template, error) {
 		}
 	} else {
 		var err error
-		tmp, err = template.New(name + t.Extension).Funcs(t.Funcs).ParseFiles(filepath.Join(t.Directory, name+t.Extension))
+
+		tmp, err = template.New(filepath.Base(name) + t.Extension).Funcs(t.Funcs).ParseFiles(filepath.Join(t.Directory, name+t.Extension))
 		if err != nil {
 			return nil, err
 		}
