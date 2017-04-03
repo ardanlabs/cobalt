@@ -152,28 +152,50 @@ func (c *Context) ServeResponse(resp []byte, status int, contentType string) {
 }
 
 // ServeHTML executes a template identified by page using the provided data and
-// serves it to the user as HTML.
-func (c *Context) ServeHTML(page string, data interface{}) {
+// serves it to the user as HTML. You may also provide a single optional
+// argument of type HTMLOptions to customize how the response is constructed.
+// Default values will be used if this argument is not provided or if any of
+// its fields have zero values.
+func (c *Context) ServeHTML(page string, data interface{}, options ...HTMLOptions) {
 	var buf bytes.Buffer
+	var op HTMLOptions
+	if len(options) > 0 {
+		op = options[0]
+	}
+	if op.ContentType == "" {
+		op.ContentType = "text/html"
+	}
+	if op.Status == 0 {
+		op.Status = http.StatusOK
+	}
 
-	if err := c.templates.Execute(&buf, page, data); err != nil {
+	// execute is the func we'll call to execute the template. If they set the
+	// NoLayout flag then we switch out to the ExecuteOnly func which has the
+	// same signature as Execute
+	execute := c.templates.Execute
+	if op.NoLayout {
+		execute = c.templates.ExecuteOnly
+	}
+
+	if err := execute(&buf, page, data); err != nil {
 		log.Printf("%s error in template: %v", c.ID, err)
 		c.ServeResponse([]byte("Error in template"), http.StatusInternalServerError, "text/plain")
 		return
 	}
 
-	c.ServeResponse(buf.Bytes(), http.StatusOK, "text/html")
+	c.ServeResponse(buf.Bytes(), op.Status, op.ContentType)
 }
 
-// ServeHTMLNoLayout serves an HTML template but bypasses the template layout file.
-func (c *Context) ServeHTMLNoLayout(page string, data interface{}) {
-	var buf bytes.Buffer
+// HTMLOptions controls how *Context.ServeHTML constructs templated responses.
+type HTMLOptions struct {
+	// NoLayout can be set to true to avoid using the template engine's layout
+	// file. It defaults to false (meaning use the layout)
+	NoLayout bool
 
-	if err := c.templates.ExecuteOnly(&buf, page, data); err != nil {
-		log.Printf("%s error in template: %v", c.ID, err)
-		c.ServeResponse([]byte("Error in template"), http.StatusInternalServerError, "text/plain")
-		return
-	}
+	// ContentType is the value to send on the Content-Type header of a response.
+	// It defaults to text/html.
+	ContentType string
 
-	c.ServeResponse(buf.Bytes(), http.StatusOK, "text/html")
+	// Status is the HTTP status code for a response. It defaults to 200.
+	Status int
 }
