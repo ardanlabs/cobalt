@@ -98,8 +98,8 @@ func Test_ContextServeHTML(t *testing.T) {
 		t.Errorf("expected status code to be %d instead got %d", http.StatusOK, w.Code)
 	}
 
-	if contentType := w.Header().Get("Content-Type"); contentType == "" {
-		t.Fatalf("expected content type to not be empty")
+	if contentType := w.Header().Get("Content-Type"); contentType != "text/html" {
+		t.Fatalf("expected content type to be text/html, got %s", contentType)
 	}
 
 	want := "Body: Hello, world!"
@@ -117,7 +117,10 @@ func Test_ContextServeHTMLNoLayout(t *testing.T) {
 	c.Templates.Directory = "_testdata/templates"
 
 	c.Get("/", func(c *cobalt.Context) {
-		c.ServeHTMLNoLayout("solo", "data")
+		options := cobalt.HTMLOptions{
+			NoLayout: true,
+		}
+		c.ServeHTML("solo", "data", options)
 	})
 
 	c.ServeHTTP(w, r)
@@ -126,11 +129,44 @@ func Test_ContextServeHTMLNoLayout(t *testing.T) {
 		t.Errorf("expected status code to be %d instead got %d", http.StatusOK, w.Code)
 	}
 
-	if contentType := w.Header().Get("Content-Type"); contentType == "" {
-		t.Fatalf("expected content type to not be empty")
+	if contentType := w.Header().Get("Content-Type"); contentType != "text/html" {
+		t.Fatalf("expected content type to be text/html, got %s", contentType)
 	}
 
 	want := "Solo template: data"
+	if got := strings.TrimSpace(w.Body.String()); got != want {
+		t.Errorf("Got:  %s", got)
+		t.Errorf("Want: %s", want)
+	}
+}
+
+func Test_ContextServeHTMLOptions(t *testing.T) {
+	r := NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	c := cobalt.New(JSONEncoder{})
+	c.Templates.Directory = "_testdata/templates"
+
+	options := cobalt.HTMLOptions{
+		ContentType: "application/xhtml",
+		Status:      http.StatusUnauthorized,
+	}
+
+	c.Get("/", func(c *cobalt.Context) {
+		c.ServeHTML("hello", "world", options)
+	})
+
+	c.ServeHTTP(w, r)
+
+	if w.Code != options.Status {
+		t.Errorf("expected status code to be %d instead got %d", options.Status, w.Code)
+	}
+
+	if contentType := w.Header().Get("Content-Type"); contentType != options.ContentType {
+		t.Fatalf("expected content type to be %s, got %s", options.ContentType, contentType)
+	}
+
+	want := "Body: Hello, world!"
 	if got := strings.TrimSpace(w.Body.String()); got != want {
 		t.Errorf("Got:  %s", got)
 		t.Errorf("Want: %s", want)
