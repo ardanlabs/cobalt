@@ -161,15 +161,15 @@ func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // Run runs the dispatcher which starts an http server to listen and serve.
-func (c *Cobalt) Run(addr string) {
+func (c *Cobalt) Run(addr string, readtimeout, writetimeout time.Duration) {
 	log.SetOutput(os.Stdout)
 	log.SetFlags(0)
 	log.SetPrefix("[cobalt] ")
 	log.Printf("starting, listening on %s", addr)
 
 	srv := &http.Server{
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  readtimeout,
+		WriteTimeout: writetimeout,
 		Addr:         addr,
 		Handler:      c,
 	}
@@ -180,15 +180,15 @@ func (c *Cobalt) Run(addr string) {
 }
 
 // RunTLS runs the dispatcher with a TLS cert.
-func (c *Cobalt) RunTLS(addr, certfile, keyfile string) {
+func (c *Cobalt) RunTLS(addr, certfile, keyfile string, readtimeout, writetimeout time.Duration) {
 	log.SetOutput(os.Stdout)
 	log.SetFlags(0)
 	log.SetPrefix("[cobalt] ")
 	log.Printf("starting, listening on %s", addr)
 
 	srv := &http.Server{
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  readtimeout,
+		WriteTimeout: writetimeout,
 		Addr:         addr,
 		Handler:      c,
 	}
