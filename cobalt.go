@@ -163,12 +163,14 @@ func (c *Cobalt) ServeFiles(path string, root http.FileSystem) {
 
 // ServeHTTP implements http.Handler.
 func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	//if options handler set and preflight request, we call handler
+	// if method is options and handler set treat as preflight CORS request. Call the CORS handler.
 	if c.cors != nil && req.Method == "OPTIONS" {
 		ctx := NewContext(req, w, nil, c.coder, c.Templates)
 		c.cors(ctx)
 		return
 	}
+	
+	// Otherwise just pass it on.
 	c.router.ServeHTTP(w, req)
 }
 
