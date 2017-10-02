@@ -25,6 +25,7 @@ type (
 		router      *httprouter.Router
 		global      []MiddleWare
 		serverError Handler
+		cors        Handler
 		coder       Coder
 
 		// Templates is the configuration for HTML templates served by cobalt.
@@ -46,6 +47,11 @@ func New(coder Coder) *Cobalt {
 // Coder returns the Coder configured in Cobalt
 func (c *Cobalt) Coder() Coder {
 	return c.coder
+}
+
+// CORS sets the handler for serving and processing cors.
+func (c *Cobalt) CORS(h Handler) {
+	c.cors = h
 }
 
 // ServerErr sets the handler for a server err.
@@ -157,6 +163,14 @@ func (c *Cobalt) ServeFiles(path string, root http.FileSystem) {
 
 // ServeHTTP implements http.Handler.
 func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// if method is options and handler set treat as preflight CORS request. Call the CORS handler.
+	if c.cors != nil && req.Method == "OPTIONS" {
+		ctx := NewContext(req, w, nil, c.coder, c.Templates)
+		c.cors(ctx)
+		return
+	}
+	
+	// Otherwise just pass it on.
 	c.router.ServeHTTP(w, req)
 }
 
