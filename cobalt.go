@@ -1,11 +1,14 @@
 package cobalt
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -169,32 +172,26 @@ func (c *Cobalt) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		c.cors(ctx)
 		return
 	}
-	
+
 	// Otherwise just pass it on.
 	c.router.ServeHTTP(w, req)
 }
 
 // Run runs the dispatcher which starts an http server to listen and serve.
+// This operation blocks until an Inerrupt or SIGTERM signal is received at
+// which point it starts a 10 second graceful shutdown. If requests do not
+// finish in that time the whole application exits.
 func (c *Cobalt) Run(addr string, readtimeout, writetimeout time.Duration) {
-	log.SetOutput(os.Stdout)
-	log.SetFlags(0)
-	log.SetPrefix("[cobalt] ")
-	log.Printf("starting, listening on %s", addr)
-
-	srv := &http.Server{
-		ReadTimeout:  readtimeout,
-		WriteTimeout: writetimeout,
-		Addr:         addr,
-		Handler:      c,
-	}
-
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf(err.Error())
-	}
+	c.run(addr, "", "", readtimeout, writetimeout)
 }
 
-// RunTLS runs the dispatcher with a TLS cert.
+// RunTLS runs the dispatcher with a TLS cert. It blocks waiting for a signal
+// and performs graceful shutdown just like Run.
 func (c *Cobalt) RunTLS(addr, certfile, keyfile string, readtimeout, writetimeout time.Duration) {
+	c.run(addr, certfile, keyfile, readtimeout, writetimeout)
+}
+
+func (c *Cobalt) run(addr, certfile, keyfile string, readtimeout, writetimeout time.Duration) {
 	log.SetOutput(os.Stdout)
 	log.SetFlags(0)
 	log.SetPrefix("[cobalt] ")
@@ -207,7 +204,43 @@ func (c *Cobalt) RunTLS(addr, certfile, keyfile string, readtimeout, writetimeou
 		Handler:      c,
 	}
 
-	if err := srv.ListenAndServeTLS(certfile, keyfile); err != nil {
-		log.Fatalf(err.Error())
+	// Make a channel to listen for errors coming from the listener. Use a
+	// buffered channel so the goroutine can exit if we don't collect this error.
+	serverErrors := make(chan error, 1)
+
+	// Start the service listening for requests.
+	go func() {
+		if certfile == "" && keyfile == "" {
+			serverErrors <- srv.ListenAndServe()
+		} else {
+			serverErrors <- srv.ListenAndServeTLS(certfile, keyfile)
+		}
+	}()
+
+	shutdownTimeout := 10 * time.Second
+
+	// Make a channel to listen for an interrupt or terminate signal from the OS.
+	// Use a buffered channel because the signal package requires it.
+	osSignals := make(chan os.Signal, 1)
+	signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM)
+
+	// Blocking waiting for shutdown or an error
+	select {
+	case err := <-serverErrors:
+		log.Fatalf("Error starting server: %v", err)
+
+	case <-osSignals:
+
+		// Create context for Shutdown call.
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+
+		// Asking listener to shutdown and load shed.
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("Graceful shutdown did not complete in %v : %v", shutdownTimeout, err)
+			if err := srv.Close(); err != nil {
+				log.Fatalf("Could not stop http server: %v", err)
+			}
+		}
 	}
 }
