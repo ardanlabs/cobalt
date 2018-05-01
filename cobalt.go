@@ -14,6 +14,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+const idHeader = "X-Request-Id"
+
 type (
 	// Coder is the interface used for the encoder in Cobalt. It allows the use
 	// of multiple Encoders within cobalt.
@@ -101,7 +103,7 @@ func (c *Cobalt) route(method, route string, h Handler, m []MiddleWare) {
 
 		log.Printf("Request %s start =>  %s %s - %s", ctx.ID, req.Method, req.RequestURI, req.RemoteAddr)
 
-		w.Header().Set("X-Request-Id", ctx.ID)
+		w.Header().Set(idHeader, ctx.ID)
 
 		mwchain := func(h Handler) Handler {
 			// global middleware.

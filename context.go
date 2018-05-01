@@ -37,8 +37,14 @@ type (
 
 // NewContext creates a new context instance with a http.Request and http.ResponseWriter.
 func NewContext(req *http.Request, resp http.ResponseWriter, p httprouter.Params, coder Coder, templates Templates) *Context {
+
+	id := req.Header.Get(idHeader)
+	if id == "" {
+		id = uuid.New()
+	}
+
 	return &Context{
-		ID:        uuid.New(),
+		ID:        id,
 		Request:   req,
 		Response:  resp,
 		data:      make(map[string]interface{}),
